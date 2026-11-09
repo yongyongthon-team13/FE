@@ -9,9 +9,9 @@ import { palette, radius } from '@/constants/theme';
 type Tab = 'route' | 'home' | 'profile';
 
 const TABS: { key: Tab; label: string; icon: IconName; onPress: () => void }[] = [
-  { key: 'route', label: '병원 가기', icon: 'location', onPress: () => router.push('/today-condition') },
+  { key: 'route', label: '병원 가기', icon: 'location', onPress: () => router.push('/hospital') },
   { key: 'home', label: '홈', icon: 'home', onPress: () => router.replace('/home') },
-  { key: 'profile', label: '내 정보', icon: 'profileList', onPress: () => router.push('/guardian-settings') }
+  { key: 'profile', label: '내 정보', icon: 'profileList', onPress: () => router.push('/my-info') }
 ];
 
 export function BottomNav({ active }: { active: Tab }) {

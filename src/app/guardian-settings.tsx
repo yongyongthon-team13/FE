@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { logout } from '@/api/auth';
 import { getGuardianSettings, updateGuardianSettings, type SettingsSection } from '@/api/guardianSettings';
 import { unlinkGuardian } from '@/api/link';
 import { AppText } from '@/components/AppText';
@@ -60,6 +61,20 @@ export default function GuardianSettingsScreen() {
       Alert.alert('해제하지 못했어요', '잠시 후 다시 시도해 주세요');
       setBusy(false);
     }
+  };
+
+  const confirmLogout = () => {
+    const title = '로그아웃할까요?';
+    const message = '다시 들어올 때 문자 인증을 한 번 더 받아야 해요.';
+    // 웹에서는 Alert.alert가 동작하지 않아 브라우저 확인창 사용
+    if (Platform.OS === 'web') {
+      if (window.confirm(`${title}\n${message}`)) logout();
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: '취소', style: 'cancel' },
+      { text: '로그아웃', onPress: () => logout() },
+    ]);
   };
 
   const confirmUnlink = () => {
@@ -129,6 +144,17 @@ export default function GuardianSettingsScreen() {
 
         {!editing && (
           <Pressable
+            style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
+            onPress={confirmLogout}
+            disabled={busy}
+            accessibilityRole="button"
+          >
+            <AppText variant="caption" weight="semibold" color={colors.accent}>로그아웃</AppText>
+          </Pressable>
+        )}
+
+        {!editing && (
+          <Pressable
             style={({ pressed }) => [styles.unlinkButton, pressed && styles.unlinkButtonPressed]}
             onPress={confirmUnlink}
             disabled={busy}
@@ -173,10 +199,23 @@ const styles = StyleSheet.create({
     backgroundColor: palette.green400,
   },
   editButtonPressed: { backgroundColor: palette.green500 },
-  unlinkButton: {
+  logoutButton: {
     alignSelf: 'center',
     height: 44,
     marginTop: 36,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    backgroundColor: '#FFFFFF',
+  },
+  logoutButtonPressed: { backgroundColor: '#F3F7EE' },
+  unlinkButton: {
+    alignSelf: 'center',
+    height: 44,
+    marginTop: 12,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',

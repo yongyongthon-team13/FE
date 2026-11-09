@@ -7,6 +7,7 @@ import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { colors, fontFamily, fontSize, shadow } from '@/constants/theme';
+import { onboarding } from '@/store/onboarding';
 
 function Field({
   label,
@@ -36,9 +37,16 @@ function Field({
 }
 
 export default function ConfirmScreen() {
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
-  const [address, setAddress] = useState('');
+  const [name, setName] = useState(onboarding.name);
+  const [birthYear, setBirthYear] = useState(onboarding.birthYear);
+  const [address, setAddress] = useState(onboarding.homeAddress);
+
+  const handleConfirm = () => {
+    onboarding.name = name.trim();
+    onboarding.birthYear = birthYear;
+    onboarding.homeAddress = address.trim();
+    router.push('/onboarding/mobility');
+  };
 
   return (
     <ScreenLayout
@@ -47,11 +55,17 @@ export default function ConfirmScreen() {
       eyebrow="1 / 4"
       title={'해당 정보가 맞는지\n확인해주세요'}
       description="잘못 기재된 내용은 바로 수정이 가능해요"
-      footer={<AppButton label="이 내용이 맞아요" variant="primary" onPress={() => router.push('/onboarding/mobility')} />}
+      footer={<AppButton label="이 내용이 맞아요" variant="primary" disabled={!name.trim()} onPress={handleConfirm} />}
     >
       <View style={styles.form}>
         <Field label="성함" value={name} onChangeText={setName} />
-        <Field label="나이" value={age} onChangeText={setAge} keyboardType="number-pad" />
+        {/* 프로필 API가 출생연도(birthYear)를 받아서 '나이' 대신 '태어난 해'로 받음 */}
+        <Field
+          label="태어난 해"
+          value={birthYear}
+          onChangeText={text => setBirthYear(text.replace(/[^0-9]/g, '').slice(0, 4))}
+          keyboardType="number-pad"
+        />
         <Field label="집 주소" value={address} onChangeText={setAddress} />
       </View>
     </ScreenLayout>

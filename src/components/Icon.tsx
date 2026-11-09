@@ -41,6 +41,7 @@ import SnowAlert from '@/assets/icons/snow-alert.svg';
 import Stairs from '@/assets/icons/stairs.svg';
 import Van from '@/assets/icons/van.svg';
 import Walk from '@/assets/icons/walk.svg';
+import Walker from '@/assets/icons/walker.svg';
 import Wheelchair from '@/assets/icons/wheelchair.svg';
 import WindAlert from '@/assets/icons/wind-alert.svg';
 
@@ -80,6 +81,7 @@ const icons = {
   stairs: [Stairs, 30],
   van: [Van, 20],
   walk: [Walk, 30],
+  walker: [Walker, 40],
   wheelchair: [Wheelchair, 30],
   windAlert: [WindAlert, 60],
 

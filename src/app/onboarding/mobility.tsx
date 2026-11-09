@@ -16,7 +16,7 @@ export default function MobilityScreen() {
       if (prev.includes(aid)) return prev.filter(a => a !== aid);
       // "아무것도" 선택 → 나머지 해제
       if (aid === 'none') return ['none'];
-      // 휠체어·지팡이 선택 → "아무것도" 해제
+      // 휠체어·보행기·지팡이 선택 → "아무것도" 해제
       return [...prev.filter(a => a !== 'none'), aid];
     });
   };
@@ -48,7 +48,14 @@ export default function MobilityScreen() {
           onPress={() => toggle('wheelchair')}
         />
         <ChoiceButton
-          label="지팡이·보행기를 사용해요"
+          label="보행기를 사용해요"
+          icon="walker"
+          iconSize={40}
+          selected={selected.includes('walker')}
+          onPress={() => toggle('walker')}
+        />
+        <ChoiceButton
+          label="지팡이를 사용해요"
           icon="cane"
           iconSize={40}
           selected={selected.includes('cane')}

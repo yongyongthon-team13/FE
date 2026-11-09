@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { Icon, IconName } from '@/components/Icon';
-import { colors, radius } from '@/constants/theme';
+import { colors, palette, radius, shadow } from '@/constants/theme';
 
 export function ChoiceButton({
   label,
@@ -20,8 +20,9 @@ export function ChoiceButton({
   selected: boolean;
   onPress: () => void;
 }) {
-  const color = selected ? colors.textOnPrimary : colors.heading;
-  const iconEl = icon && <Icon name={icon} size={iconSize} color={color} />;
+  const textColor = selected ? colors.textOnPrimary : palette.green600;
+  const iconColor = selected ? colors.textOnPrimary : colors.accent;
+  const iconEl = icon && <Icon name={icon} size={iconSize} color={iconColor} />;
 
   return (
     <Pressable
@@ -31,8 +32,8 @@ export function ChoiceButton({
       style={[styles.base, selected && styles.selected]}
     >
       <View style={styles.content}>
-        {iconPosition  === 'left' && iconEl}
-        <AppText weight={selected ? 'semibold' : 'medium'} color={color} style={styles.label}>
+        {iconPosition === 'left' && iconEl}
+        <AppText weight={selected ? 'semibold' : 'medium'} color={textColor} style={styles.label}>
           {label}
         </AppText>
         {iconPosition === 'right' && iconEl}
@@ -43,16 +44,22 @@ export function ChoiceButton({
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
+    height: 50,
     borderRadius: radius.base,
-    borderWidth: 2,
-    borderColor: colors.accent,
+    borderWidth: 1.5,
+    borderColor: colors.borderSoft,
     backgroundColor: colors.bg,
     justifyContent: 'center',
     paddingHorizontal: 16,
+    shadowColor: shadow.button.shadowColor,
+    shadowOpacity: shadow.button.shadowOpacity,
+    shadowRadius: shadow.button.shadowRadius,
+    shadowOffset: shadow.button.shadowOffset,
+    elevation: shadow.button.elevation,
   },
   selected: {
     backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   content: {
     flexDirection: 'row',

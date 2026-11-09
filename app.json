@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.yongyongthonteam13.yongyongthonteam13"
     },
     "web": {
       "output": "server",
@@ -33,11 +34,29 @@
           "imageWidth": 76
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "어르신의 답변을 음성으로 받기 위해 마이크를 사용해요.",
+          "speechRecognitionPermission": "말씀하신 내용을 글자로 바꾸기 위해 음성 인식을 사용해요."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "7b895117-aa23-40e7-b1e1-8d2daa162a06"
+      }
     }
   }
 }
