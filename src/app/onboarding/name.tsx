@@ -1,17 +1,23 @@
 // src/app/onboarding/name.tsx
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
-import { MicButton } from '@/components/MicButton';
 import { ScreenLayout } from '@/components/ScreenLayout';
-import { fontFamily, palette } from '@/constants/theme';
+import { VoiceAnswer } from '@/components/VoiceAnswer';
+import { useSpeechToText } from '@/hooks/useSpeechToText';
+import { parseName } from '@/lib/parseSpeech';
+import { onboarding } from '@/store/onboarding';
 
 export default function NameScreen() {
-  // TODO: 음성 인식 연동 시 listening 상태 사용
-  const [listening, setListening] = useState(true);
-  
+  // 화면이 열리면 바로 듣기 시작, 마이크 버튼을 누르면 다시 듣기
+  const voice = useSpeechToText();
+
+  const handleDone = () => {
+    voice.stop();
+    const name = parseName(voice.transcript);
+    if (name) onboarding.name = name; // 못 알아들었으면 가입 때 입력한 이름 유지
+    router.push('/onboarding/birth-year');
+  };
 
   return (
     <ScreenLayout
@@ -19,29 +25,14 @@ export default function NameScreen() {
       rightText="건너뛰기 없음"
       eyebrow="1 / 4"
       title="어르신의 성함을 알려주세요"
-      footer={
-        <AppButton label="완료하기" variant="primary" onPress={() => router.push('/onboarding/birth-year')} />
-      }
+      footer={<AppButton label="완료하기" variant="primary" onPress={handleDone} />}
     >
-      <View style={styles.micArea}>
-        <MicButton active={listening} onPress={() => setListening(true)} />
-        <Text style={styles.guide}>{'버튼을 눌러주시면,\n다시 이야기 할 수 있어요'}</Text>
-      </View>
+      <VoiceAnswer
+        listening={voice.listening}
+        transcript={voice.transcript}
+        error={voice.error}
+        onPressMic={voice.start}
+      />
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  micArea: {
-    alignItems: 'center',
-    paddingTop: 56,
-  },
-  guide: {
-    marginTop: 26,
-    fontFamily: fontFamily.medium,
-    fontSize: 16,
-    lineHeight: 28,
-    color: palette.green400,
-    textAlign: 'center',
-  },
-});

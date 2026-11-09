@@ -1,9 +1,9 @@
 // src/app/signup-verify.tsx
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { sendVerificationCode, verifyCode } from '@/api/auth';
+import { authErrorMessage, login, sendVerificationCode, type UserRole } from '@/api/auth';
 import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { FormField } from '@/components/FormField';
@@ -11,27 +11,41 @@ import { ScreenLayout } from '@/components/ScreenLayout';
 import { colors, palette } from '@/constants/theme';
 
 const CODE_LENGTH = 6;
-// TODO: 가입 후 이동할 화면 ('어르신으로 시작하기'가 원래 가던 경로로 바꾸기)
-const NEXT_ROUTE = '/onboarding/name';
+const RESEND_WAIT_SEC = 60; // 같은 번호로는 60초에 한 번만 다시 받을 수 있음
+
+// 인증 완료 후 이동할 화면
+const NEXT_ROUTE: Record<UserRole, '/onboarding/name' | '/guardian-link'> = {
+  ELDER: '/onboarding/name',
+  GUARDIAN: '/guardian-link',
+};
 
 const notify = (title: string, message: string) => {
   if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
   else Alert.alert(title, message);
 };
 
-/** 어르신 회원가입 2단계: 문자로 온 인증번호 입력 */
+/** 로그인 2단계: 문자로 온 인증번호 입력 → 토큰 발급·저장 */
 export default function SignupVerifyScreen() {
-  const { name = '', phone = '' } = useLocalSearchParams<{ name?: string; phone?: string }>();
+  const { phone = '', role: roleParam } = useLocalSearchParams<{ name?: string; phone?: string; role?: string }>();
+  const role: UserRole = roleParam === 'GUARDIAN' ? 'GUARDIAN' : 'ELDER';
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [wait, setWait] = useState(RESEND_WAIT_SEC); // 재전송까지 남은 초
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait(w => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
 
   const handleVerify = async () => {
     setBusy(true);
     try {
-      await verifyCode(phone, code);
-      router.replace(NEXT_ROUTE);
-    } catch {
-      notify('인증번호가 맞지 않아요', '문자로 온 번호를 다시 확인해 주세요');
+      await login(phone, code, role);
+      router.replace(NEXT_ROUTE[role]);
+    } catch (e) {
+      const { title, message } = authErrorMessage(e);
+      notify(title, message);
       setCode('');
     } finally {
       setBusy(false);
@@ -39,11 +53,14 @@ export default function SignupVerifyScreen() {
   };
 
   const handleResend = async () => {
+    if (wait > 0) return;
     try {
-      await sendVerificationCode(name, phone);
+      await sendVerificationCode(phone);
+      setWait(RESEND_WAIT_SEC);
       notify('인증번호를 다시 보냈어요', '문자를 확인해 주세요');
-    } catch {
-      notify('인증번호를 보내지 못했어요', '잠시 후 다시 시도해 주세요');
+    } catch (e) {
+      const { title, message } = authErrorMessage(e);
+      notify(title, message);
     }
   };
 
@@ -53,7 +70,7 @@ export default function SignupVerifyScreen() {
       bodyPaddingTop={195}
       footer={
         <AppButton
-          label="인증번호 확인하기"
+          label="인증번호 전송"
           variant="primary"
           disabled={code.length < CODE_LENGTH || busy}
           onPress={handleVerify}
@@ -78,12 +95,14 @@ export default function SignupVerifyScreen() {
           autoFocus
           right={
             <Pressable
-              style={({ pressed }) => [styles.resend, pressed && styles.resendPressed]}
+              style={({ pressed }) => [styles.resend, wait > 0 && styles.resendWaiting, pressed && styles.resendPressed]}
               onPress={handleResend}
+              disabled={wait > 0}
               accessibilityRole="button"
+              accessibilityLabel={wait > 0 ? `${wait}초 뒤 재전송 가능` : '인증번호 재전송'}
             >
               <AppText variant="small" weight="semibold" color={colors.textOnPrimary} style={styles.resendText}>
-                재전송
+                {wait > 0 ? `${wait}초` : '재전송'}
               </AppText>
             </Pressable>
           }
@@ -98,6 +117,7 @@ const styles = StyleSheet.create({
   title: { lineHeight: 35 },
   fields: { marginTop: 25 },
   resend: {
+    minWidth: 55,
     height: 35,
     paddingHorizontal: 9,
     alignItems: 'center',
@@ -105,6 +125,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: palette.green600,
   },
+  resendWaiting: { backgroundColor: palette.green200 },
   resendPressed: { backgroundColor: palette.green700 },
   resendText: { fontSize: 13 },
 });

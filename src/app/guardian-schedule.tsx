@@ -44,7 +44,7 @@ export default function GuardianScheduleScreen() {
           ))}
         </View>
 
-        
+        {/* TODO: '/schedule-add'를 어르신 일정 추가 페이지의 실제 경로로 바꾸기 */}
         <Pressable
           style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}
           onPress={() => router.push('/onboarding/paste-guide')}

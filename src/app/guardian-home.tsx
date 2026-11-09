@@ -1,7 +1,7 @@
 // src/app/guardian-home.tsx
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getGuardianHome, type GuardianHome } from '@/api/guardianHome';
@@ -36,6 +36,14 @@ export default function GuardianHomeScreen() {
 
   const call = () => Linking.openURL(`tel:${data.elderPhone}`);
 
+  // 평소에는 위치를 보지 않고, 병원 가는 날 이동 중일 때만 위치를 보여줌
+  const showLocationOff = () => {
+    const title = '지금은 위치를 볼 수 없어요';
+    const message = `${data.elderName}가 병원에 가려고 출발하면 위치를 볼 수 있어요.`;
+    if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
+    else Alert.alert(title, message);
+  };
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.body}>
@@ -49,8 +57,7 @@ export default function GuardianHomeScreen() {
             <QuickActions
               actions={[
                 { label: '전화', icon: 'phone', onPress: call },
-                // TODO: 어르신 위치 크게 보기 화면 연결
-                { label: '위치 크게', icon: 'location', onPress: () => {} },
+                { label: '위치 크게', icon: 'location', onPress: () => router.push('/guardian-moving') },
                 // TODO: 메시지 보내기 연결
                 { label: '메시지', icon: 'chat', onPress: () => {} },
               ]}
@@ -64,8 +71,7 @@ export default function GuardianHomeScreen() {
             <QuickActions
               actions={[
                 { label: '전화', icon: 'phone', onPress: call },
-                // TODO: 어르신 현재 위치 화면 연결
-                { label: '위치 보기', icon: 'location', onPress: () => {} },
+                { label: '위치 보기', icon: 'location', onPress: showLocationOff },
                 { label: '일정 추가', icon: 'plusSquare', onPress: () => router.push('/onboarding/paste-guide') },
               ]}
             />

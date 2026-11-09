@@ -1,17 +1,20 @@
 // src/app/signup.tsx
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, StyleSheet, View } from 'react-native';
 
-import { sendVerificationCode } from '@/api/auth';
+import { authErrorMessage, sendVerificationCode, type UserRole } from '@/api/auth';
 import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { FormField } from '@/components/FormField';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { palette } from '@/constants/theme';
+import { onboarding } from '@/store/onboarding';
 
-/** 어르신 회원가입 1단계: 이름·전화번호 입력 → 인증번호 전송 */
+/** 로그인 1단계: 이름·전화번호 입력 → 인증번호 전송 (어르신·보호자 공통, ?role=GUARDIAN) */
 export default function SignupScreen() {
+  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const role: UserRole = roleParam === 'GUARDIAN' ? 'GUARDIAN' : 'ELDER';
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
@@ -21,12 +24,13 @@ export default function SignupScreen() {
   const handleSend = async () => {
     setBusy(true);
     try {
-      await sendVerificationCode(name.trim(), phone);
-      router.push({ pathname: '/signup-verify', params: { name: name.trim(), phone } });
-    } catch {
-      const message = '잠시 후 다시 시도해 주세요';
-      if (Platform.OS === 'web') window.alert(`인증번호를 보내지 못했어요\n${message}`);
-      else Alert.alert('인증번호를 보내지 못했어요', message);
+      await sendVerificationCode(phone);
+      if (role === 'ELDER') onboarding.name = name.trim(); // 온보딩 끝에 프로필 등록 API로 보냄
+      router.push({ pathname: '/signup-verify', params: { name: name.trim(), phone, role } });
+    } catch (e) {
+      const { title, message } = authErrorMessage(e);
+      if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
+      else Alert.alert(title, message);
     } finally {
       setBusy(false);
     }

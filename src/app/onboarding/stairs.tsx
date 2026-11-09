@@ -23,7 +23,7 @@ export default function StairsScreen() {
           disabled={!selected}
           onPress={() => {
             onboarding.stairs = selected;
-            router.push('/onboarding/mobility-confirm');
+            router.push('/onboarding/discomfort');
           }}
         />
       }

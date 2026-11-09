@@ -37,6 +37,15 @@ export async function getReviewForm(id: string): Promise<ReviewForm> {
           { value: 'late', label: '늦었어요' },
         ],
       },
+      {
+        // AI가 어르신 맞춤(보행기·걷기 불편 등)으로 추천한 경로 평가
+        id: 'route',
+        label: '추천해 드린 길은 어떠셨나요?',
+        options: [
+          { value: 'good', label: '편했어요' },
+          { value: 'bad', label: '힘들었어요' },
+        ],
+      },
     ],
   };
 }

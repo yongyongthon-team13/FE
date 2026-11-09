@@ -1,58 +1,59 @@
-// src/lib/alarm.ts
-// 병원 가는 날 출발 알림 (휴대폰 로컬 알림)
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-export type AlarmOption = 'nightBefore' | 'hourBefore'; // 전날 저녁 / 출발 1시간 전
+export type AlarmOption = 'nightBefore' | 'hourBefore';
 
-const NIGHT_BEFORE_HOUR = 19; // 전날 저녁 7시
+// 앱이 켜져 있을 때도 알림이 보이도록
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
-/** '오전 8:45', '오후 2:30', '14:30' → { hour, minute } (24시간) */
-function parseTime(label: string): { hour: number; minute: number } | null {
-  const m = label.match(/(\d{1,2}):(\d{2})/);
-  if (!m) return null;
-  let hour = Number(m[1]);
-  const minute = Number(m[2]);
-  if (label.includes('오후') && hour < 12) hour += 12;
-  if (label.includes('오전') && hour === 12) hour = 0;
-  return { hour, minute };
+async function ensurePermission() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: '병원 일정 알림',
+      importance: Notifications.AndroidImportance.HIGH,
+    });
+  }
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status === 'granted') return true;
+  const req = await Notifications.requestPermissionsAsync();
+  return req.status === 'granted';
 }
 
-/** 선택한 옵션에 맞춰 출발 알림 예약. 웹에서는 아무것도 하지 않음 */
-export async function scheduleDepartureAlarm({
-  appointmentDay,
-  option,
-  departAt,
-}: {
+/** 병원 가는 날 기준으로 알림 시각 계산: 전날 20:00 / 당일 06:00 */
+function triggerDate(appointmentDay: Date, option: AlarmOption) {
+  const d = new Date(appointmentDay);
+  if (option === 'nightBefore') {
+    d.setDate(d.getDate() - 1);
+    d.setHours(20, 0, 0, 0);
+  } else {
+    d.setHours(6, 0, 0, 0);
+  }
+  return d;
+}
+
+export async function scheduleDepartureAlarm(params: {
   appointmentDay: Date;
   option: AlarmOption;
   departAt: string;
-}): Promise<void> {
-  if (Platform.OS === 'web') return;
+}) {
+  if (Platform.OS === 'web') return null;
+  if (!(await ensurePermission())) return null;
 
-  const time = parseTime(departAt);
-  if (!time) return;
+  const date = triggerDate(params.appointmentDay, params.option);
+  if (date.getTime() <= Date.now()) return null; // 이미 지난 시간이면 예약 안 함
 
-  const depart = new Date(appointmentDay);
-  depart.setHours(time.hour, time.minute, 0, 0);
-
-  const fireAt = new Date(depart);
-  if (option === 'hourBefore') {
-    fireAt.setHours(fireAt.getHours() - 1);
-  } else {
-    fireAt.setDate(fireAt.getDate() - 1);
-    fireAt.setHours(NIGHT_BEFORE_HOUR, 0, 0, 0);
-  }
-  if (fireAt.getTime() <= Date.now()) return; // 이미 지난 시간이면 예약하지 않음
-
-  const { granted } = await Notifications.requestPermissionsAsync();
-  if (!granted) return;
-
-  await Notifications.scheduleNotificationAsync({
+  return Notifications.scheduleNotificationAsync({
     content: {
-      title: option === 'hourBefore' ? '1시간 뒤에 출발해요' : '내일 병원 가는 날이에요',
-      body: `${departAt}에 출발하시면 돼요`,
+      title: params.option === 'nightBefore' ? '내일 병원 가는 날이에요' : '오늘 병원 가는 날이에요',
+      body: `${params.departAt}에 출발하시면 돼요`,
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireAt },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
   });
 }
