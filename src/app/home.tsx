@@ -1,19 +1,42 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { loadMyAppointments } from "@/api/appointments";
+import { getPrimaryGuardian } from "@/api/guardian";
 import { AppButton } from "@/components/AppButton";
 import { AppText } from "@/components/AppText";
 import { BottomNav } from "@/components/BottomNav";
 import { Icon } from "@/components/Icon";
 import { colors, palette, radius, shadow } from "@/constants/theme";
+import { callPhone } from "@/lib/call";
 import { useAppointments, type Appointment } from "@/store/appointments";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const appointments = useAppointments();
+
+  // 연결된 보호자에게 전화
+  const callGuardian = async () => {
+    const guardian = await getPrimaryGuardian();
+    if (guardian) {
+      callPhone(guardian.phone, guardian.name || "보호자");
+      return;
+    }
+    const title = "연결된 보호자가 없어요";
+    const message =
+      "내 정보에서 '보호자 연결 번호 보기'를 눌러 보호자와 연결해 주세요";
+    if (Platform.OS === "web") window.alert(`${title}\n${message}`);
+    else Alert.alert(title, message);
+  };
   // 홈에 올 때마다 서버 일정 다시 불러오기
   useFocusEffect(
     useCallback(() => {
@@ -54,10 +77,9 @@ export default function HomeScreen() {
           onPress={() => router.push("/onboarding/paste-guide")}
         />
 
-        {/* TODO: 보호자 연락 (guardian contact-actions) */}
         <Pressable
           style={styles.pill}
-          onPress={() => {}}
+          onPress={callGuardian}
           accessibilityRole="button"
         >
           <AppText variant="caption" weight="semibold" color={colors.accent}>

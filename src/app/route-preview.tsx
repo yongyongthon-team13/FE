@@ -71,7 +71,6 @@ export default function RoutePreviewScreen() {
             disabled={loading}
             onPress={() => load(seenIds)}
           />
-          {/* TODO: 선택한 경로(selectedId)로 이동 시작 (trips) */}
           <AppButton
             label="이 방법으로 출발"
             variant="primary"

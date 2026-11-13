@@ -27,7 +27,7 @@ import { TodayTripCard } from "@/components/guardian/TodayTripCard";
 import { TodoList } from "@/components/guardian/TodoList";
 import { UpcomingList } from "@/components/guardian/UpcomingList";
 import { colors } from "@/constants/theme";
-import { callPhone } from "@/lib/call";
+import { callPhone, textPhone } from "@/lib/call";
 
 /** 보호자 홈 (평소 / 진료 당일 이동 중) */
 export default function GuardianHomeScreen() {
@@ -49,6 +49,10 @@ export default function GuardianHomeScreen() {
           ) {
             router.push("/guardian-arrived");
           }
+          // 보고 있는 중에 '이동 중' → '응답 없음(도움 요청)'으로 바뀌면 그 화면 띄우기
+          if (next.status === "noResponse" && was === "onTheWay") {
+            router.push("/guardian-no-response");
+          }
           prevStatus.current = next.status;
           setData(next);
         })
@@ -65,6 +69,12 @@ export default function GuardianHomeScreen() {
       </View>
     );
   }
+
+  const message = () => {
+    if (textPhone(data.elderPhone, data.elderName) && data.tripId) {
+      recordGuardianContact(data.tripId, "MESSAGE").catch(() => {});
+    }
+  };
 
   const call = () => {
     // 이동 중에 전화하면 서버에 연락 기록 남기기
@@ -103,8 +113,7 @@ export default function GuardianHomeScreen() {
                   icon: "location",
                   onPress: () => router.push("/guardian-moving"),
                 },
-                // TODO: 메시지 보내기 연결
-                { label: "메시지", icon: "chat", onPress: () => {} },
+                { label: "메시지", icon: "chat", onPress: message },
               ]}
             />
             <TodayLogList logs={data.today.logs} />
@@ -150,8 +159,10 @@ export default function GuardianHomeScreen() {
                   });
               }}
             />
-            {/* TODO: 전체 일정 화면 연결 */}
-            <UpcomingList visits={data.upcoming} onSeeAll={() => {}} />
+            <UpcomingList
+              visits={data.upcoming}
+              onSeeAll={() => router.push("/guardian-schedule")}
+            />
           </>
         )}
       </ScrollView>

@@ -6,7 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -59,7 +59,6 @@ export default function GuardianScheduleScreen() {
           ))}
         </View>
 
-        {/* TODO: '/schedule-add'를 어르신 일정 추가 페이지의 실제 경로로 바꾸기 */}
         <Pressable
           style={({ pressed }) => [
             styles.addButton,

@@ -1,4 +1,8 @@
-import { createElderProfile, toElderProfileRequest } from "@/api/elderProfile";
+import {
+  createElderProfile,
+  saveConsents,
+  toElderProfileRequest,
+} from "@/api/elderProfile";
 import { AppButton } from "@/components/AppButton";
 import { AppText } from "@/components/AppText";
 import { ScreenLayout } from "@/components/ScreenLayout";
@@ -44,6 +48,8 @@ export default function MobilityConfirmScreen() {
         toElderProfileRequest(onboarding),
       );
       await saveElderId(profile.elderId);
+      // 동의 화면에서 고른 값 저장 (실패해도 가입은 계속)
+      saveConsents(profile.elderId, onboarding.consents).catch(() => {});
       router.push("/onboarding/discomfort");
     } catch {
       const title = "정보를 저장하지 못했어요";

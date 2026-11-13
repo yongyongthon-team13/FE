@@ -9,6 +9,7 @@ export type ElderMapProps = {
   hospital?: (MapPoint & { name: string }) | null; // 오늘 가는 병원
   height?: number;
   interactive?: boolean; // false면 손으로 움직일 수 없는 미리보기
+  path?: [number, number][]; // 경로 선 [위도, 경도] (경로 미리보기용)
 };
 
 export function leafletHtml({
@@ -16,6 +17,7 @@ export function leafletHtml({
   elder,
   hospital,
   interactive,
+  path,
 }: ElderMapProps): string {
   const data = JSON.stringify({
     elder: elder ? [elder.latitude, elder.longitude] : null,
@@ -23,6 +25,7 @@ export function leafletHtml({
     hospital: hospital ? [hospital.latitude, hospital.longitude] : null,
     hospitalName: hospital?.name ?? "병원",
     interactive: !!interactive,
+    path: path ?? [],
   });
   return `<!doctype html>
 <html><head>
@@ -47,6 +50,10 @@ export function leafletHtml({
     maxZoom: 19, attribution: "© OpenStreetMap",
   }).addTo(map);
   var pts = [];
+  if (d.path.length > 1) {
+    L.polyline(d.path, { color: "#729259", weight: 5, opacity: 0.85 }).addTo(map);
+    pts = pts.concat(d.path);
+  }
   if (d.hospital) {
     L.circleMarker(d.hospital, { radius: 8, color: "#fff", weight: 3, fillColor: "#2F471D", fillOpacity: 1 })
       .addTo(map).bindTooltip(d.hospitalName, { permanent: true, direction: "top", offset: [0, -8] });

@@ -12,7 +12,7 @@ import { Alert, Platform, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Params = AppointmentDraft & {
-  mode?: "missing" | "edit";
+  mode?: "missing" | "edit" | "new"; // new: 병원 가기 → 직접 일정 만들기
   lat?: string; // 병원 좌표·주소 (진료과 추천에서 넘어온 경우)
   lon?: string;
   address?: string;
@@ -45,7 +45,11 @@ export default function AppointmentEditScreen() {
   });
 
   const title =
-    params.mode === "edit" ? "일정을 수정해주세요" : "일부를 못 읽었어요";
+    params.mode === "new"
+      ? "일정을 입력해주세요"
+      : params.mode === "edit"
+        ? "일정을 수정해주세요"
+        : "일부를 못 읽었어요";
 
   const [asking, setAsking] = useState(false);
 

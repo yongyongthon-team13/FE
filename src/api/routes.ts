@@ -35,6 +35,7 @@ type Leg = {
   distanceMeters: number;
   route?: { routeName?: string } | null;
   stops?: { name: string }[] | null;
+  geometry?: number[][] | null; // 지나가는 선 좌표
 };
 type ServerRoutePlan = {
   routePlanId: string;
@@ -136,9 +137,25 @@ export async function searchRoutePlans(
 }
 
 /** 경로 상세: 단계별 카드 */
-export async function getRoutePlan(
-  id: string,
-): Promise<(RoutePlan & { steps: RouteStep[] }) | null> {
+type LatLng = { latitude: number; longitude: number };
+
+/** 좌표 한 점 → [위도, 경도] (경도·위도 순서로 와도 맞춰 줌: 위도는 90을 넘지 않음) */
+const toLatLng = (pt: number[]): [number, number] =>
+  Math.abs(pt[0]) > 90 ? [pt[1], pt[0]] : [pt[0], pt[1]];
+const toPoint = (pt?: Point | null): LatLng | null =>
+  pt?.latitude != null && pt?.longitude != null
+    ? { latitude: pt.latitude, longitude: pt.longitude }
+    : null;
+
+export async function getRoutePlan(id: string): Promise<
+  | (RoutePlan & {
+      steps: RouteStep[];
+      path: [number, number][]; // 지도에 그릴 경로 선
+      start: LatLng | null; // 출발 (집)
+      end: LatLng | null; // 도착 (병원)
+    })
+  | null
+> {
   const p = await apiData<ServerRoutePlan>(`/api/v1/route-plans/${id}`);
   if (!p) return null;
   const legs = [...p.legs].sort((a, b) => a.sequence - b.sequence);
@@ -158,7 +175,15 @@ export async function getRoutePlan(
           summary: `${Math.max((leg.stops?.length ?? 1) - 1, 1)}개의 정거장 · ${minutes(leg.durationSeconds)}분`,
         },
   );
-  return { ...toRoutePlan(p, 0), steps };
+  return {
+    ...toRoutePlan(p, 0),
+    steps,
+    path: legs.flatMap((l) =>
+      (l.geometry ?? []).filter((pt) => pt.length >= 2).map(toLatLng),
+    ),
+    start: toPoint(legs[0]?.start),
+    end: toPoint(legs[legs.length - 1]?.end),
+  };
 }
 
 export type DeparturePlan = {

@@ -1,20 +1,7 @@
-import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+// src/app/guardian/index.tsx
+// '/guardian' 주소로 들어오면 보호자 홈으로 보냄
+import { Redirect } from "expo-router";
 
-import { AppText } from '@/components/AppText';
-import { colors } from '@/constants/theme';
-
-// TODO: 보호자 화면
-export default function GuardianHomeScreen() {
-  return (
-    <View style={styles.screen}>
-      <AppText variant="body" color={colors.accent} onPress={() => router.back()}>
-        보호자 화면 (준비 중)
-      </AppText>
-    </View>
-  );
+export default function GuardianIndex() {
+  return <Redirect href="/guardian-home" />;
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
-});

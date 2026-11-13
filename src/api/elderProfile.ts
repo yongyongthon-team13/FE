@@ -77,3 +77,35 @@ export function updateElderProfile(
     body: JSON.stringify(body),
   });
 }
+
+// ── 개인정보 동의: PUT /api/v1/elder-profiles/{elderId}/consents/{scope}
+// 보호자 알림·차량 부탁·지연/무응답 푸시는 '보호자 공유 동의'가 있어야 동작함
+// policyVersion: 동의 화면 문구 버전 (문구가 바뀌면 v2로 올리기). 성공 응답은 204
+const CONSENT_SCOPES = {
+  location: "LOCATION", // 위치 정보 이용
+  notification: "NOTIFICATION_CALL", // 알림·전화 수신
+  health: "HEALTH", // 건강 정보 이용
+  caregiver: "CAREGIVER_SHARING", // 보호자와 이동 정보 공유 (보호자 알림·차량 부탁에 필요)
+} as const;
+const POLICY_VERSION = "v1";
+
+export async function saveConsents(
+  elderId: string,
+  agreed: Record<keyof typeof CONSENT_SCOPES, boolean>,
+): Promise<void> {
+  await Promise.all(
+    (Object.keys(CONSENT_SCOPES) as (keyof typeof CONSENT_SCOPES)[]).map(
+      (key) =>
+        apiRequest(
+          `/api/v1/elder-profiles/${elderId}/consents/${CONSENT_SCOPES[key]}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              policyVersion: POLICY_VERSION,
+              granted: agreed[key],
+            }),
+          },
+        ),
+    ),
+  );
+}

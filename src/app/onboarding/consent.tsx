@@ -1,31 +1,34 @@
 // src/app/onboarding/consent.tsx
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from "expo-router";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AppButton } from '@/components/AppButton';
-import { Icon } from '@/components/Icon';
-import { ScreenLayout } from '@/components/ScreenLayout';
-import { colors, fontFamily, fontSize, radius } from '@/constants/theme';
+import { AppButton } from "@/components/AppButton";
+import { Icon } from "@/components/Icon";
+import { ScreenLayout } from "@/components/ScreenLayout";
+import { colors, fontFamily, fontSize, radius } from "@/constants/theme";
+import { onboarding } from "@/store/onboarding";
 
-type ConsentKey = 'location' | 'notification' | 'health';
+type ConsentKey = "location" | "notification" | "health" | "caregiver";
 
 const ITEMS: { key: ConsentKey; label: string }[] = [
-  { key: 'location', label: '위치 정보 이용 동의' },
-  { key: 'notification', label: '알림·전화 수신 동의' },
-  { key: 'health', label: '건강 정보 이용 동의' },
+  { key: "location", label: "위치 정보 이용 동의" },
+  { key: "notification", label: "알림·전화 수신 동의" },
+  { key: "health", label: "건강 정보 이용 동의" },
+  { key: "caregiver", label: "보호자와 이동 정보 공유 동의" },
 ];
 
 export default function ConsentScreen() {
-  // TODO: 동의 결과 API 전송
   const [agreed, setAgreed] = useState<Record<ConsentKey, boolean>>({
     location: false,
     notification: false,
     health: false,
+    caregiver: false,
   });
   const allAgreed = ITEMS.every((item) => agreed[item.key]);
 
-  const toggle = (key: ConsentKey) => setAgreed((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key: ConsentKey) =>
+    setAgreed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <ScreenLayout
@@ -47,19 +50,32 @@ export default function ConsentScreen() {
             label="완료하기"
             variant="primary"
             disabled={!allAgreed}
-            onPress={() => router.push('/onboarding/mobility')}
+            onPress={() => {
+              onboarding.consents = agreed; // 프로필 만든 뒤 서버에 저장
+              router.push("/onboarding/mobility");
+            }}
           />
         </>
       }
     >
       <View style={styles.center}>
-        <Text style={styles.title}>{'다음 절차를 위해서\n동의를 받을게요'}</Text>
+        <Text style={styles.title}>
+          {"다음 절차를 위해서\n동의를 받을게요"}
+        </Text>
       </View>
     </ScreenLayout>
   );
 }
 
-function ConsentToggle({ label, checked, onPress }: { label: string; checked: boolean; onPress: () => void }) {
+function ConsentToggle({
+  label,
+  checked,
+  onPress,
+}: {
+  label: string;
+  checked: boolean;
+  onPress: () => void;
+}) {
   const color = checked ? colors.textOnPrimary : colors.accent;
 
   return (
@@ -78,14 +94,14 @@ function ConsentToggle({ label, checked, onPress }: { label: string; checked: bo
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   title: {
     fontFamily: fontFamily.bold,
     fontSize: 34,
     lineHeight: 49,
     color: colors.accent,
-    textAlign: 'center',
+    textAlign: "center",
   },
   consents: {
     gap: 9,
@@ -97,9 +113,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.bg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
   },
   toggleChecked: {

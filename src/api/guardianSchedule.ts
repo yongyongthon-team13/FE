@@ -3,6 +3,7 @@
 import {
   clinicText,
   dateOf,
+  getActiveTrip,
   getElderAppointments,
   getElderContact,
   hm,
@@ -10,6 +11,7 @@ import {
   missingFields,
   moveText,
   requireElderId,
+  toElderStatus,
   upcomingOf,
   WEEK,
   type ServerAppointment,
@@ -51,14 +53,15 @@ function toVisit(a: ServerAppointment): ScheduleVisit {
 /** GET /api/v1/guardian/elder-profiles/{elderId}/appointments */
 export async function getGuardianSchedule(): Promise<GuardianSchedule> {
   const elderId = await requireElderId();
-  const [elder, list] = await Promise.all([
+  const [elder, list, trip] = await Promise.all([
     getElderContact(elderId),
     getElderAppointments(elderId),
+    getActiveTrip(elderId),
   ]);
   return {
     elderName: elder.name,
     elderPhone: elder.phone,
-    status: "beforeDeparture", // TODO: 10-3단계 active-trip으로 교체
+    status: toElderStatus(trip),
     visits: upcomingOf(list).map(toVisit),
   };
 }

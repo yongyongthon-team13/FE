@@ -35,7 +35,7 @@ export function useGuideSession(routeId?: string, appointmentId?: string) {
       setSession(s);
       setIndex(0);
     });
-    // TODO: 실시간 위치/버스 도착 구독 → 서버가 알려주는 단계로 setIndex, 도착 시간 갱신
+    // 이동 중 실시간 갱신: 위치는 아래에서 30초마다 서버로, 버스 안 남은 정거장은 subscribeBusRide가 계산
   }, [routeId, appointmentId]);
 
   const step: GuideStep | null = session?.steps[index] ?? null;
@@ -109,7 +109,6 @@ export function useGuideSession(routeId?: string, appointmentId?: string) {
     if (!session || !step || step.type !== "onBus") return;
     const unsubscribe = subscribeBusRide(session.id, step, (updated) => {
       if (updated.stopsLeft <= 1) {
-        // TODO: '다음 정류장에서 내려요' 단계 화면이 생기면 거기로 이어짐
         unsubscribe();
         next();
       } else {
