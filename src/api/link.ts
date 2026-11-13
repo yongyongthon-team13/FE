@@ -1,33 +1,79 @@
 // src/api/link.ts
-// 어르신 앱 ↔ 보호자 앱 연동
-// 흐름: 어르신 앱이 서버에서 6자리 연결 번호를 받아 화면에 띄움 → 보호자가 그 번호를 입력 → 서버가 두 계정을 연결
+// 어르신 앱 ↔ 보호자 앱 연결
+// 흐름: 어르신 앱이 연결 번호를 받아 화면에 띄움 → 보호자가 번호 입력 → 서버가 두 계정을 연결
+import { ApiError, apiRequest } from "@/lib/api";
+import {
+  clearElderId,
+  clearLinkId,
+  getElderId,
+  getLinkId,
+  saveElderId,
+  saveLinkId,
+} from "@/lib/tokenStorage";
 
 export type LinkCode = {
-  code: string; // 6자리 숫자, 예: '482913'
-  expiresAt: string; // 만료 시각 (ISO 문자열)
+  code: string; // 연결 번호
+  expiresAt: string; // 만료 시각 (ISO)
 };
 
 export type LinkResult = {
+  linkId: string;
   elderId: string;
-  elderName: string;
+  status: string;
 };
 
-// TODO: POST /link-codes 연동 (어르신 앱에서 호출 → 연결 번호 발급)
+export type ElderSummary = {
+  elderId: string;
+  name: string;
+  birthYear: number | null;
+  relationship: string | null;
+  phoneNumber?: string | null;
+};
+
+/** 어르신 앱: POST /api/v1/elder-profiles/{elderId}/guardian-link-codes */
 export async function requestLinkCode(): Promise<LinkCode> {
-  await new Promise(r => setTimeout(r, 300));
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  return { code, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() };
+  const elderId = await getElderId();
+  if (!elderId) throw new ApiError(400, "NO_ELDER", "어르신 정보가 없어요");
+  return apiRequest<LinkCode>(
+    `/api/v1/elder-profiles/${elderId}/guardian-link-codes`,
+    { method: "POST" },
+  );
 }
 
-// TODO: POST /guardian-links 연동 (보호자 앱에서 호출 → 연결 번호로 어르신과 연결)
-// 번호가 틀렸거나 만료됐으면 에러를 던짐
-export async function linkGuardian(code: string): Promise<LinkResult> {
-  await new Promise(r => setTimeout(r, 300));
-  if (code === '000000') throw new Error('INVALID_CODE');
-  return { elderId: 'mock-elder', elderName: '어머니' };
+/** 보호자 앱: POST /api/v1/guardian-links → 어르신 id·연결 id 저장 */
+export async function linkGuardian(
+  code: string,
+  relationship?: string,
+): Promise<LinkResult> {
+  const link = await apiRequest<LinkResult>("/api/v1/guardian-links", {
+    method: "POST",
+    body: JSON.stringify({ code, ...(relationship ? { relationship } : {}) }),
+  });
+  await saveElderId(link.elderId);
+  await saveLinkId(link.linkId);
+  return link;
 }
 
-// TODO: DELETE /guardian-links 연동 (보호자 연결 해제 → 어르신 정보·알림을 더 이상 받지 않음)
+/** 보호자 앱: DELETE /api/v1/guardian-links/{linkId} */
 export async function unlinkGuardian(): Promise<void> {
-  await new Promise(r => setTimeout(r, 300));
+  const linkId = await getLinkId();
+  if (!linkId) throw new ApiError(400, "NO_LINK", "연결 정보가 없어요");
+  await apiRequest(`/api/v1/guardian-links/${linkId}`, { method: "DELETE" });
+  await clearElderId();
+  await clearLinkId();
+}
+
+/** 보호자 앱: GET /api/v1/guardian/elder-profiles */
+export function getLinkedElders(): Promise<ElderSummary[]> {
+  return apiRequest<ElderSummary[]>("/api/v1/guardian/elder-profiles");
+}
+
+/** 보호자 앱: 저장된 어르신 id, 없으면(다시 로그인 등) 연결 목록 첫 번째로 저장 */
+export async function ensureGuardianElderId(): Promise<string | null> {
+  const saved = await getElderId();
+  if (saved) return saved;
+  const [first] = await getLinkedElders();
+  if (!first) return null;
+  await saveElderId(first.elderId);
+  return first.elderId;
 }

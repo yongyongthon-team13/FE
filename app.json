@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.yongyongthonteam13.yongyongthonteam13"
+      "package": "com.yongyongthonteam13.yongyongthonteam13",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "server",
@@ -37,10 +38,30 @@
       "expo-font",
       "expo-secure-store",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "병원 문자 캡처 사진으로 일정을 만들기 위해 사진 접근이 필요해요."
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
           "microphonePermission": "어르신의 답변을 음성으로 받기 위해 마이크를 사용해요.",
           "speechRecognitionPermission": "말씀하신 내용을 글자로 바꾸기 위해 음성 인식을 사용해요."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "병원 가는 길을 안내하고 보호자에게 위치를 알려드리기 위해 위치를 사용해요."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],

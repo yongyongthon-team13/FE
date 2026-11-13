@@ -1,19 +1,24 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { getCompanionAssessment, type CompanionAssessment } from '@/api/companion';
-import MascotWave from '@/assets/images/mascot-wave.svg';
-import { AppButton } from '@/components/AppButton';
-import { AppText } from '@/components/AppText';
-import { ScreenLayout } from '@/components/ScreenLayout';
-import { colors, palette, radius, shadow } from '@/constants/theme';
-import { useAppointments } from '@/store/appointments';
+import {
+  getCompanionAssessment,
+  type CompanionAssessment,
+} from "@/api/companion";
+import MascotWave from "@/assets/images/mascot-wave.svg";
+import { AppButton } from "@/components/AppButton";
+import { AppText } from "@/components/AppText";
+import { ScreenLayout } from "@/components/ScreenLayout";
+import { colors, palette, radius, shadow } from "@/constants/theme";
+import { useAppointments } from "@/store/appointments";
 
 export default function CompanionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const appointment = useAppointments().find(a => a.id === id);
-  const [assessment, setAssessment] = useState<CompanionAssessment | null>(null);
+  const appointment = useAppointments().find((a) => a.id === id);
+  const [assessment, setAssessment] = useState<CompanionAssessment | null>(
+    null,
+  );
 
   useEffect(() => {
     getCompanionAssessment(id).then(setAssessment);
@@ -26,16 +31,16 @@ export default function CompanionScreen() {
       bodyPaddingTop={28}
       footer={
         <>
-          <AppButton label="혼자 갈 수 있어요" variant="secondary" onPress={() => router.replace('/home')} />
-          {/* TODO: POST /appointments/{id}/companion-requests */}
+          <AppButton
+            label="혼자 갈 수 있어요"
+            variant="secondary"
+            onPress={() => router.replace("/home")}
+          />
           <AppButton
             label="신청하기"
             variant="primary"
             onPress={() =>
-              router.push({
-                pathname: '/companion-request',
-                params: { id, phone: assessment.provider.phone },
-              })
+              router.push({ pathname: "/companion-request", params: { id } })
             }
           />
         </>
@@ -52,7 +57,7 @@ export default function CompanionScreen() {
           </AppText>
         )}
         <AppText variant="heading" weight="semibold" color={palette.green600}>
-          {'안전한 이동을 위해\n동행서비스를 추천드려요'}
+          {"안전한 이동을 위해\n동행서비스를 추천드려요"}
         </AppText>
       </View>
 
@@ -76,7 +81,7 @@ export default function CompanionScreen() {
 
 const styles = StyleSheet.create({
   mascot: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   header: {
     marginTop: 10,
@@ -91,7 +96,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     paddingHorizontal: 18,
     paddingVertical: 16,
-    justifyContent: 'center',
+    justifyContent: "center",
     ...shadow.card,
   },
   serviceCard: {
@@ -101,7 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
     paddingHorizontal: 17,
     paddingVertical: 24,
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: 11,
   },
 });

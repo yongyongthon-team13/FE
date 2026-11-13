@@ -1,12 +1,13 @@
-import { searchRoutePlans } from '@/api/routes';
-import { AppButton } from '@/components/AppButton';
-import { AppText } from '@/components/AppText';
-import { Icon } from '@/components/Icon';
-import { ScreenLayout } from '@/components/ScreenLayout';
-import { colors, palette } from '@/constants/theme';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { searchRoutePlans } from "@/api/routes";
+import { AppButton } from "@/components/AppButton";
+import { AppText } from "@/components/AppText";
+import { Icon } from "@/components/Icon";
+import { ScreenLayout } from "@/components/ScreenLayout";
+import { colors, palette } from "@/constants/theme";
+import { useAppointments } from "@/store/appointments";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
 type RoutePlan = {
   id: string;
@@ -15,32 +16,41 @@ type RoutePlan = {
   transfers: number;
   minutes: number;
   recommended?: boolean;
+  hasSubway?: boolean;
 };
 
 const planTitle = (p: RoutePlan) =>
-  `${p.recommended ? '추천 · ' : ''}${p.buses.join(' → ')} 저상버스`;
+  `${p.recommended ? "추천 · " : ""}${p.buses.join(" → ")}${p.hasSubway ? "" : " 저상버스"}`;
 
 const planSummary = (p: RoutePlan) =>
-  `걷기 ${p.walkMeters}m · 갈아타기 ${p.transfers === 0 ? '없음' : `${p.transfers}번`} · ${p.minutes}분`;
+  `걷기 ${p.walkMeters}m · 갈아타기 ${p.transfers === 0 ? "없음" : `${p.transfers}번`} · ${p.minutes}분`;
 
 export default function RoutePreviewScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const appointments = useAppointments();
+  const appointmentId = id ?? appointments[0]?.id;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [plans, setPlans] = useState<RoutePlan[]>([]);
   const [seenIds, setSeenIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const load = async (exclude: string[]) => {
+    if (!appointmentId) return;
     setLoading(true);
+    setError(false);
     try {
-      let next = await searchRoutePlans(exclude);
+      let next = await searchRoutePlans(appointmentId, exclude);
       // 더 이상 새 경로가 없으면 처음부터 다시 보여주기
       if (next.length === 0) {
         exclude = [];
-        next = await searchRoutePlans();
+        next = await searchRoutePlans(appointmentId);
       }
       setPlans(next);
-      setSeenIds([...exclude, ...next.map(p => p.id)]);
+      setSeenIds([...exclude, ...next.map((p) => p.id)]);
       setSelectedId(null);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -48,7 +58,7 @@ export default function RoutePreviewScreen() {
 
   useEffect(() => {
     load([]);
-  }, []);
+  }, [appointmentId]);
 
   return (
     <ScreenLayout
@@ -56,7 +66,7 @@ export default function RoutePreviewScreen() {
       footer={
         <>
           <AppButton
-            label={loading ? '길을 찾는 중...' : '다른 길 추천하기'}
+            label={loading ? "길을 찾는 중..." : "다른 길 추천하기"}
             variant="secondary"
             disabled={loading}
             onPress={() => load(seenIds)}
@@ -66,15 +76,35 @@ export default function RoutePreviewScreen() {
             label="이 방법으로 출발"
             variant="primary"
             disabled={!selectedId || loading}
-            onPress={() => router.push({ pathname: '/route-detail', params: { id: selectedId! } })}
+            onPress={() =>
+              router.push({
+                pathname: "/route-detail",
+                params: {
+                  id: selectedId!,
+                  ...(appointmentId ? { appointmentId } : {}),
+                },
+              })
+            }
           />
         </>
       }
     >
-      <AppText variant="heading" weight="semibold" color={palette.green600}>이렇게 가시면 돼요</AppText>
+      <AppText variant="heading" weight="semibold" color={palette.green600}>
+        이렇게 가시면 돼요
+      </AppText>
+
+      {error && (
+        <AppText
+          variant="button"
+          color={palette.green300}
+          style={{ marginTop: 12 }}
+        >
+          길을 찾지 못했어요. 다른 길 추천하기를 눌러 다시 시도해 주세요
+        </AppText>
+      )}
 
       <View style={styles.list}>
-        {plans.map(plan => {
+        {plans.map((plan) => {
           const selected = plan.id === selectedId;
           return (
             <Pressable
@@ -93,9 +123,16 @@ export default function RoutePreviewScreen() {
                 >
                   {planTitle(plan)}
                 </AppText>
-                <Icon name="bus" size={25} color={selected ? colors.textOnPrimary : colors.accent} />
+                <Icon
+                  name="bus"
+                  size={25}
+                  color={selected ? colors.textOnPrimary : colors.accent}
+                />
               </View>
-              <AppText variant="button" color={selected ? colors.textOnPrimary : palette.green300}>
+              <AppText
+                variant="button"
+                color={selected ? colors.textOnPrimary : palette.green300}
+              >
                 {planSummary(plan)}
               </AppText>
             </Pressable>
@@ -110,15 +147,15 @@ const styles = StyleSheet.create({
   list: { marginTop: 48, gap: 20 },
   card: {
     minHeight: 105,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     borderRadius: 22,
     paddingHorizontal: 11,
     paddingVertical: 14,
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: 6,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
@@ -128,6 +165,6 @@ const styles = StyleSheet.create({
     backgroundColor: palette.green400,
     borderColor: palette.green600,
   },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   titleText: { flexShrink: 1 },
 });
