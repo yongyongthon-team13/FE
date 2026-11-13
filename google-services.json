@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "491716940539",
+    "project_id": "yongyongthonteam13",
+    "storage_bucket": "yongyongthonteam13.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:491716940539:android:438e882a9e26febc4a165e",
+        "android_client_info": {
+          "package_name": "com.yongyongthonteam13.yongyongthonteam13"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbWITWnA3EtY60L-JAMcPgQemv34S3TSA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,28 +1,39 @@
 // src/app/guardian-schedule-help.tsx
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getScheduleHelpRequest, submitScheduleHelp, type ScheduleHelpRequest } from '@/api/scheduleHelp';
-import MascotWave from '@/assets/images/mascot-wave.svg';
-import { AppButton } from '@/components/AppButton';
-import { AppText } from '@/components/AppText';
-import { GuardianHeader } from '@/components/guardian/GuardianHeader';
-import { HelpInfoCard } from '@/components/guardian/HelpInfoCard';
-import { HelpRequestBanner } from '@/components/guardian/HelpRequestBanner';
-import { colors, palette } from '@/constants/theme';
+import {
+  getScheduleHelpRequest,
+  submitScheduleHelp,
+  type ScheduleHelpRequest,
+} from "@/api/scheduleHelp";
+import MascotWave from "@/assets/images/mascot-wave.svg";
+import { AppButton } from "@/components/AppButton";
+import { AppText } from "@/components/AppText";
+import { GuardianHeader } from "@/components/guardian/GuardianHeader";
+import { HelpInfoCard } from "@/components/guardian/HelpInfoCard";
+import { HelpRequestBanner } from "@/components/guardian/HelpRequestBanner";
+import { colors, palette } from "@/constants/theme";
 
 /** 보호자: 어르신이 '보호자에게 연락하기'를 눌렀을 때 뜨는 일정 입력 도움 화면 */
 export default function GuardianScheduleHelpScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [data, setData] = useState<ScheduleHelpRequest | null>(null);
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    getScheduleHelpRequest(id ?? 'mock-help').then(req => {
+    getScheduleHelpRequest(id ?? "mock-help").then((req) => {
       setData(req);
       setValue(req.fieldValue);
     });
@@ -39,10 +50,10 @@ export default function GuardianScheduleHelpScreen() {
   const handleSubmit = async () => {
     setBusy(true);
     try {
-      await submitScheduleHelp(data.id, value.trim());
-      router.replace('/guardian-home');
+      await submitScheduleHelp(data, value.trim());
+      router.replace("/guardian-home");
     } catch {
-      Alert.alert('보내지 못했어요', '잠시 후 다시 시도해 주세요');
+      Alert.alert("보내지 못했어요", "잠시 후 다시 시도해 주세요");
     } finally {
       setBusy(false);
     }
@@ -50,7 +61,10 @@ export default function GuardianScheduleHelpScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+      >
         <GuardianHeader elderName={data.elderName} status={data.status} />
 
         <View style={styles.mascot}>
@@ -63,7 +77,12 @@ export default function GuardianScheduleHelpScreen() {
           <HelpInfoCard title={data.infoTitle} rows={data.rows} />
         </View>
 
-        <AppText variant="button" weight="medium" color={colors.accent} style={styles.fieldLabel}>
+        <AppText
+          variant="button"
+          weight="medium"
+          color={colors.accent}
+          style={styles.fieldLabel}
+        >
           {data.fieldLabel}
         </AppText>
         <TextInput
@@ -88,10 +107,15 @@ export default function GuardianScheduleHelpScreen() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.bg,
+  },
   screen: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: 30, paddingTop: 14, paddingBottom: 24 },
-  mascot: { alignItems: 'center', marginTop: 30, marginBottom: 8 },
+  mascot: { alignItems: "center", marginTop: 30, marginBottom: 8 },
   info: { marginTop: 25 },
   fieldLabel: { marginTop: 28, marginBottom: 8 },
   input: {
@@ -100,8 +124,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: colors.borderSoft,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#213314',
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#213314",
     shadowOpacity: 0.05,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
