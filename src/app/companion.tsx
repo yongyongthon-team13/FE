@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import {
   getCompanionAssessment,
@@ -24,7 +24,20 @@ export default function CompanionScreen() {
     getCompanionAssessment(id).then(setAssessment);
   }, [id]);
 
-  if (!assessment) return null; // TODO: 로딩 화면
+  if (!assessment) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.bg,
+        }}
+      >
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
 
   return (
     <ScreenLayout

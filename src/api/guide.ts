@@ -1,9 +1,13 @@
 // src/api/guide.ts
+import { Platform } from "react-native";
+
 import {
+  distanceToDestinationKm,
   findNextLowFloorBus,
   searchFromHere,
   sendTripEvent,
   startTripSession,
+  watchStopsLeft,
 } from "./trips";
 
 export type Direction = "straight" | "left" | "right";
@@ -37,9 +41,9 @@ export type OnBusStep = {
   type: "onBus";
   alightStop: string; // 내릴 정류장, 예: 'OO정류장'
   stopsLeft: number; // 남은 정거장 수
+  stops?: { latitude: number; longitude: number }[]; // 지나가는 정류장 좌표 (남은 정거장 계산용)
 };
 
-// TODO: 다음 화면 디자인이 오면 단계 타입 추가 (하차, 도착 등)
 export type GuideStep =
   | WalkStep
   | WaitBusStep
@@ -171,28 +175,47 @@ export async function fetchNextLowFloorBus(
   return { ...step, arrivalMin: step.arrivalMin + 8 };
 }
 
-// TODO: 실시간 버스 위치 구독(WebSocket 등)으로 교체
-// 지금은 목업: 5초마다 남은 정거장 수를 하나씩 줄임. 반환값은 구독 해제 함수
+/** 버스 타는 중: 남은 정거장 수 갱신. 반환값은 구독 해제 함수
+ *  정류장 좌표와 위치 권한이 있으면 내 위치로 계산, 아니면 5초마다 하나씩 줄이는 시연용 동작 */
 export function subscribeBusRide(
   sessionId: string,
   step: OnBusStep,
   onUpdate: (updated: OnBusStep) => void,
 ): () => void {
-  let stopsLeft = step.stopsLeft;
-  const timer = setInterval(() => {
-    stopsLeft = Math.max(stopsLeft - 1, 0);
-    onUpdate({ ...step, stopsLeft });
-  }, 5000);
-  return () => clearInterval(timer);
+  let stop = () => {};
+  const demo = () => {
+    let stopsLeft = step.stopsLeft;
+    const timer = setInterval(() => {
+      stopsLeft = Math.max(stopsLeft - 1, 0);
+      onUpdate({ ...step, stopsLeft });
+    }, 5000);
+    stop = () => clearInterval(timer);
+  };
+  if (Platform.OS === "web" || (step.stops?.length ?? 0) < 2) demo();
+  else stop = watchStopsLeft(step, onUpdate, demo);
+  return () => stop();
 }
 
-// TODO: POST /guide-sessions/{id}/reroute 연동 (현재 위치 기준으로 남은 단계 다시 계산)
+/** '다시 안내': 지금 위치에서 병원까지 남은 길을 다시 찾기 (실패하면 그대로) */
 export async function rerouteGuideSession(
   session: GuideSession,
   fromStepId: string,
 ): Promise<GuideSession> {
-  await new Promise((r) => setTimeout(r, 300));
-  return session;
+  try {
+    const found = await searchFromHere(session);
+    const hospitalSteps = session.steps.filter(
+      (s) => s.type === "arrived" || s.type === "counterHelp",
+    );
+    return {
+      ...session,
+      expectedArrivalAt: new Date(
+        Date.now() + found.durationSeconds * 1000,
+      ).toISOString(),
+      steps: [...found.steps, ...hospitalSteps],
+    };
+  } catch {
+    return session;
+  }
 }
 
 /** '지금 계신 곳에서 다시 안내': 현재 위치에서 병원까지 새 경로 (실패하면 목업) */
@@ -253,17 +276,26 @@ async function mockReroute(session: GuideSession): Promise<ReroutePlan> {
 const toHHmm = (d: Date) =>
   `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-// TODO: POST /guide-sessions/{id}/no-response 연동 (현재 위치 전송 + 보호자에게 문자 발송 후 기록 받기)
+/** 병원까지 거리 한 줄 (위치를 모르면 빈 목록) */
+async function distanceLine(
+  session: GuideSession,
+): Promise<{ time: string; label: string }[]> {
+  const km = await distanceToDestinationKm(session).catch(() => null);
+  return km != null
+    ? [{ time: toHHmm(new Date()), label: `병원에서 ${km.toFixed(1)}KM` }]
+    : [];
+}
+
+/** 응답 없음 기록 (보호자 무응답 알림은 서버가 위치로 판단해서 보냄) */
 export async function reportNoResponse(
   session: GuideSession,
 ): Promise<NoResponseReport> {
-  await new Promise((r) => setTimeout(r, 300));
   const lateAt = toHHmm(new Date(session.expectedArrivalAt));
   return {
     timeline: [
       { time: lateAt, label: "도착 시간 지남" },
-      { time: lateAt, label: "병원에서 1.2KM" },
-      { time: toHHmm(new Date()), label: "전화 알림 / 응답 없음" },
+      ...(await distanceLine(session)),
+      { time: toHHmm(new Date()), label: "응답 없음 · 보호자에게 알림" },
     ],
     guardianNotified: true,
   };
@@ -278,7 +310,7 @@ export async function reportHelpRequest(
   return {
     timeline: [
       { time: lateAt, label: "도착 시간 지남" },
-      { time: lateAt, label: "병원에서 1.2KM" },
+      ...(await distanceLine(session)),
       { time: toHHmm(new Date()), label: "도움 요청" },
     ],
     guardianNotified: true,

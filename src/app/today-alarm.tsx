@@ -11,7 +11,6 @@ import { colors, palette } from "@/constants/theme";
 
 export default function TodayAlarmScreen() {
   const insets = useSafeAreaInsets();
-  // TODO: 알림 data(time, hospital)로 전달받기
   // 출발 알림을 누르면 알림 data(appointmentId, time, hospital)로 열림
   const {
     appointmentId,

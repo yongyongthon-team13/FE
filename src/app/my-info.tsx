@@ -57,7 +57,6 @@ function toSections(p: ElderProfile): Section[] {
       value: mobility.join(" · ") || "없음",
       editable: false,
     },
-    // TODO: 서버에 글자·음성 설정 칸이 생기면 연동
     {
       id: "display",
       title: "글자 · 음성",

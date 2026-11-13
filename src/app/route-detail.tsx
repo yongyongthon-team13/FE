@@ -1,6 +1,7 @@
 import { getRoutePlan, type RouteStep } from '@/api/routes';
 import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
+import { LeafletMap } from '@/components/guardian/LeafletMap';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { colors, palette } from '@/constants/theme';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,11 +9,22 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 export default function RouteDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, appointmentId } = useLocalSearchParams<{
+    id: string;
+    appointmentId?: string;
+  }>();
   const [steps, setSteps] = useState<RouteStep[]>([]);
+  const [map, setMap] = useState<{
+    path: [number, number][];
+    start: { latitude: number; longitude: number } | null;
+    end: { latitude: number; longitude: number } | null;
+  } | null>(null);
 
   useEffect(() => {
-    getRoutePlan(id).then(plan => setSteps(plan?.steps ?? []));
+    getRoutePlan(id).then(plan => {
+      setSteps(plan?.steps ?? []);
+      if (plan) setMap({ path: plan.path, start: plan.start, end: plan.end });
+    });
   }, [id]);
 
   return (
@@ -23,14 +35,28 @@ export default function RouteDetailScreen() {
         <AppButton
           label="어떤 길인지 확인했어요"
           variant="primary"
-          onPress={() => router.dismissTo('/home')}
+          onPress={() =>
+            router.push({
+              pathname: '/departure',
+              params: { id, ...(appointmentId ? { appointmentId } : {}) },
+            })
+          }
         />
       }
     >
       <AppText variant="heading" weight="semibold" color={palette.green600}>가는 길 미리 보기</AppText>
 
-      {/* TODO: 미리보기 지도 */}
-      <View style={styles.map} />
+      <View style={styles.map}>
+        {map?.start && (
+          <LeafletMap
+            elderName="집"
+            elder={map.start}
+            hospital={map.end ? { ...map.end, name: '병원' } : null}
+            path={map.path}
+            interactive
+          />
+        )}
+      </View>
 
       <View style={styles.list}>
         {steps.map((step, i) => (
@@ -71,6 +97,7 @@ const styles = StyleSheet.create({
     height: 170,
     alignSelf: 'center',
     marginTop: 24,
+    overflow: 'hidden',
     backgroundColor: '#D9D9D9',
   },
   list: { marginTop: 21, gap: 21 },

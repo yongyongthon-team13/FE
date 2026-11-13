@@ -24,7 +24,7 @@ type CarOption = "taxi" | "guardian" | "special";
 // 용인시 교통약자 이동지원센터 (용인누리) 콜센터
 const SPECIAL_TRANSPORT_TEL = "16660420";
 
-// TODO: 카카오T 딥링크 실제 동작 확인
+// 카카오T 앱이 없으면 스토어로 이동
 const TAXI_APP_URL = "kakaot://taxi";
 const TAXI_STORE_URL =
   Platform.OS === "ios"

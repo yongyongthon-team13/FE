@@ -57,7 +57,6 @@ export default function WeatherAlertScreen() {
       bodyPaddingTop={49}
       footer={
         <>
-          {/* TODO: 버스 경로 화면으로 연결 */}
           <AppButton
             label="버스 이용하기"
             variant="secondary"
@@ -68,7 +67,6 @@ export default function WeatherAlertScreen() {
               })
             }
           />
-          {/* TODO: 차량(동행) 호출 화면으로 연결 */}
           <AppButton
             label="차 부르기"
             variant="primary"

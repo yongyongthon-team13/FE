@@ -18,3 +18,14 @@ export function callPhone(
   Linking.openURL(`tel:${digits}`);
   return true;
 }
+
+/** 문자 앱 열기 (번호가 없으면 안내). 열었으면 true */
+export function textPhone(
+  phone: string | null | undefined,
+  name = "어르신",
+): boolean {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (!digits) return callPhone(null, name); // 같은 안내 띄우기
+  Linking.openURL(`sms:${digits}`);
+  return true;
+}

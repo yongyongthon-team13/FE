@@ -4,7 +4,7 @@ import * as Location from "expo-location";
 
 import { apiData, apiRequest } from "@/lib/api";
 import { SIZE_LABEL } from "./clinics";
-import type { GuideSession, GuideStep, WaitBusStep } from "./guide";
+import type { Direction, GuideSession, GuideStep, OnBusStep, WaitBusStep } from "./guide";
 import { searchRoutePlans } from "./routes";
 
 export type TripEvent =
@@ -44,7 +44,7 @@ export async function sendCheckIn(
 }
 
 // ── 서버 응답
-type Point = { name: string };
+type Point = { name: string; latitude?: number; longitude?: number };
 type Leg = {
   sequence: number;
   mode: "WALK" | "BUS" | "SUBWAY";
@@ -54,7 +54,7 @@ type Leg = {
   distanceMeters: number;
   steps?: { instruction?: string; distanceMeters?: number }[] | null;
   route?: { routeName?: string } | null;
-  stops?: { name: string }[] | null;
+  stops?: { name: string; latitude?: number; longitude?: number }[] | null;
 };
 type ServerRoutePlan = {
   summary?: { durationSeconds?: number } | null;
@@ -87,6 +87,14 @@ const routeName = (leg: Leg) => {
   return /^\d+$/.test(name) ? `${name}번` : name;
 };
 
+/** 안내 문구에서 방향 읽기 ('왼쪽으로', '우회전' 등) */
+function directionOf(text?: string | null): Direction {
+  if (!text) return "straight";
+  if (/왼쪽|좌회전|좌측/.test(text)) return "left";
+  if (/오른쪽|우회전|우측/.test(text)) return "right";
+  return "straight";
+}
+
 /** 서버 경로 구간 → 이동 단계 (걷기 / 버스 기다리기 → 타는 중 → 내리기) */
 function legsToSteps(plan: ServerRoutePlan): GuideStep[] {
   const steps: GuideStep[] = [];
@@ -98,7 +106,7 @@ function legsToSteps(plan: ServerRoutePlan): GuideStep[] {
           id: `walk-${i}`,
           type: "walk",
           title: `${leg.end.name}까지`,
-          direction: "straight", // TODO: 서버 안내 문구에 방향 값이 생기면 교체
+          direction: directionOf(leg.steps?.[0]?.instruction),
           distanceM: leg.steps?.[0]?.distanceMeters ?? leg.distanceMeters,
           instruction: leg.steps?.[0]?.instruction ?? "",
           remainingM: leg.distanceMeters,
@@ -131,6 +139,9 @@ function legsToSteps(plan: ServerRoutePlan): GuideStep[] {
           type: "onBus",
           alightStop: leg.end.name,
           stopsLeft: Math.max((leg.stops?.length ?? 2) - 1, 1),
+          stops: (leg.stops ?? [])
+            .filter((st) => st.latitude != null && st.longitude != null)
+            .map((st) => ({ latitude: st.latitude!, longitude: st.longitude! })),
         },
         { id: `alight-${i}`, type: "alight" },
       );
@@ -304,5 +315,60 @@ export async function searchFromHere(session: GuideSession): Promise<{
     steps: legsToSteps(plan).map((s) => ({ ...s, id: `re-${s.id}` })),
     durationSeconds: plan.summary?.durationSeconds ?? 0,
     distanceMeters: plan.summary?.distanceMeters ?? 0,
+  };
+}
+
+type LatLng = { latitude: number; longitude: number };
+
+/** 두 지점 사이 거리 (km) */
+export function distanceKm(a: LatLng, b: LatLng): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.latitude - a.latitude);
+  const dLon = rad(b.longitude - a.longitude);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(h));
+}
+
+/** 지금 위치에서 병원까지 거리 (km, 모르면 null) */
+export async function distanceToDestinationKm(session: GuideSession): Promise<number | null> {
+  const dest = session.destinationPoint;
+  if (dest?.latitude == null || dest?.longitude == null) return null;
+  const pos =
+    (await Location.getLastKnownPositionAsync()) ??
+    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+  if (!pos) return null;
+  return distanceKm(pos.coords, { latitude: dest.latitude, longitude: dest.longitude });
+}
+
+/** 버스 타는 중: 내 위치에서 가장 가까운 정류장으로 남은 정거장 계산. 위치를 못 쓰면 onFail */
+export function watchStopsLeft(
+  step: OnBusStep,
+  onUpdate: (updated: OnBusStep) => void,
+  onFail: () => void,
+): () => void {
+  const stops = step.stops ?? [];
+  let sub: Location.LocationSubscription | null = null;
+  let stopped = false;
+  (async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") throw new Error("위치 권한 없음");
+    if (stopped) return;
+    sub = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, timeInterval: 10_000, distanceInterval: 30 },
+      (pos) => {
+        let nearest = 0;
+        stops.forEach((st, i) => {
+          if (distanceKm(pos.coords, st) < distanceKm(pos.coords, stops[nearest])) nearest = i;
+        });
+        onUpdate({ ...step, stopsLeft: Math.max(stops.length - 1 - nearest, 0) });
+      },
+    );
+    if (stopped) sub.remove();
+  })().catch(() => {
+    if (!stopped) onFail();
+  });
+  return () => {
+    stopped = true;
+    sub?.remove();
   };
 }

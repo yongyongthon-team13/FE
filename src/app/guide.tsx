@@ -73,6 +73,18 @@ export default function GuideScreen() {
     ]);
   };
 
+  /** 병원 접수 키오스크 쓰는 법 (어려우면 '창구에 보여주기') */
+  const showKioskGuide = () => {
+    const title = "키오스크 사용법";
+    const message =
+      "1. 첫 화면에서 '접수' 또는 '진료 접수'를 눌러요\n" +
+      "2. 휴대폰 번호나 주민등록번호를 입력해요\n" +
+      "3. 예약한 진료과를 고르면 번호표가 나와요\n\n" +
+      "어려우면 창구에 이 앱 화면을 보여 주세요";
+    if (Platform.OS === "web") window.alert(`${title}\n\n${message}`);
+    else Alert.alert(title, message);
+  };
+
   const callGuardian = async () => {
     const guardian = await getPrimaryGuardian();
     if (!guardian) {
@@ -119,7 +131,6 @@ export default function GuideScreen() {
             openReroute();
           }}
           onLost={openReroute}
-          // TODO: 보호자 연락 화면 연결
           onHelp={requestHelp}
         />
       </GuideLayout>
@@ -229,8 +240,7 @@ export default function GuideScreen() {
         <GuideLayout destination={session.destination} onEnd={handleEnd}>
           <ArrivedStepView
             arrivalNotified={arrivalNotified}
-            // TODO: 키오스크 사용법 화면 연결
-            onSeeKiosk={() => {}}
+            onSeeKiosk={showKioskGuide}
             onNoKiosk={() => goTo("counterHelp")}
           />
         </GuideLayout>
@@ -244,11 +254,10 @@ export default function GuideScreen() {
           onEnd={handleEnd}
           footer={
             <>
-              {/* TODO: 키오스크 사용법 화면 연결 */}
               <AppButton
                 label="키오스크 사용법 보기"
                 variant="secondary"
-                onPress={() => {}}
+                onPress={showKioskGuide}
               />
               <AppButton
                 label="안내를 종료해요"
@@ -264,8 +273,6 @@ export default function GuideScreen() {
           <CounterHelpStepView step={step} />
         </GuideLayout>
       );
-
-    // TODO: 다음 단계 화면들 추가
   }
 }
 
