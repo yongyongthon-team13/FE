@@ -1,6 +1,8 @@
 import {
   createElderProfile,
+  ensureElderId,
   saveConsents,
+  updateElderProfile,
   toElderProfileRequest,
 } from "@/api/elderProfile";
 import { AppButton } from "@/components/AppButton";
@@ -44,14 +46,23 @@ export default function MobilityConfirmScreen() {
   const handleComplete = async () => {
     setBusy(true);
     try {
-      const profile = await createElderProfile(
-        toElderProfileRequest(onboarding),
-      );
+      const body = toElderProfileRequest(onboarding);
+      let profile;
+      try {
+        profile = await createElderProfile(body);
+      } catch (e) {
+        // 이미 프로필이 있는 계정(다시 온보딩)이면 새로 만들지 않고 고쳐서 저장
+        console.warn("프로필 만들기 실패 → 기존 프로필 확인", e);
+        const existingId = await ensureElderId();
+        if (!existingId) throw e;
+        profile = await updateElderProfile(existingId, body);
+      }
       await saveElderId(profile.elderId);
       // 동의 화면에서 고른 값 저장 (실패해도 가입은 계속)
       saveConsents(profile.elderId, onboarding.consents).catch(() => {});
       router.push("/onboarding/discomfort");
-    } catch {
+    } catch (e) {
+      console.warn("정보 저장 실패", e);
       const title = "정보를 저장하지 못했어요";
       const message = "인터넷 연결을 확인하고 다시 눌러 주세요";
       if (Platform.OS === "web") window.alert(`${title}\n${message}`);

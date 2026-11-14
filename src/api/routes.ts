@@ -63,6 +63,48 @@ function toRoutePlan(p: ServerRoutePlan, i: number): RoutePlan {
   };
 }
 
+/** 응답 안에서 위도·경도가 있는 첫 장소 찾기 (응답 모양이 명세에 확실하지 않아 넓게 찾음) */
+function firstCoords(o: unknown): { latitude: number; longitude: number } | null {
+  if (!o || typeof o !== "object") return null;
+  const r = o as Record<string, unknown>;
+  const lat = r.latitude ?? r.lat;
+  const lon = r.longitude ?? r.lon ?? r.lng;
+  if (typeof lat === "number" && typeof lon === "number")
+    return { latitude: lat, longitude: lon };
+  for (const v of Array.isArray(o) ? o : Object.values(r)) {
+    const found = firstCoords(v);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** 병원 좌표가 없으면(문자·직접 입력 일정) 병원 이름으로 장소 검색 → 일정에도 저장 */
+async function findClinicCoords(
+  appointmentId: string,
+  clinicName: string,
+): Promise<{ latitude: number; longitude: number } | null> {
+  if (clinicName.trim().length < 2) return null;
+  try {
+    const res = await apiRequest<unknown>(
+      `/api/v1/places?q=${encodeURIComponent(clinicName.trim())}&limit=1`,
+    );
+    const coords = firstCoords(res);
+    if (!coords) return null;
+    // 다음부터는 바로 쓰도록 일정에 좌표 저장 (실패해도 길찾기는 계속)
+    apiRequest(`/api/v1/appointments/${appointmentId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        clinicLat: coords.latitude,
+        clinicLon: coords.longitude,
+      }),
+    }).catch(() => {});
+    return coords;
+  } catch (e) {
+    console.warn("병원 위치 찾기 실패", e);
+    return null;
+  }
+}
+
 // 한 번에 5개 받아 두고 '다른 길 추천하기'는 그 안에서 3개씩 보여주기 (서버에 제외 기능 없음)
 let cache: { appointmentId: string; plans: RoutePlan[] } | null = null;
 
@@ -74,13 +116,15 @@ async function fetchPlans(appointmentId: string): Promise<RoutePlan[]> {
   }>(`/api/v1/appointments/${appointmentId}`);
 
   const home = await getHomePoint(); // 등록한 집 위치 (없으면 처인구청)
+  const clinic =
+    appt.clinicLat != null && appt.clinicLon != null
+      ? { latitude: appt.clinicLat, longitude: appt.clinicLon }
+      : await findClinicCoords(appointmentId, appt.clinicName ?? "");
   const routeSearch = {
     origin: { name: "집", ...home },
     destination: {
       name: appt.clinicName ?? "병원",
-      ...(appt.clinicLat != null && appt.clinicLon != null
-        ? { latitude: appt.clinicLat, longitude: appt.clinicLon }
-        : {}),
+      ...(clinic ?? {}),
     },
     mode: SEARCH_MODE,
     count: 5,

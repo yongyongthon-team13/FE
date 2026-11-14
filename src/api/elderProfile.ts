@@ -117,7 +117,10 @@ export async function ensureElderId(): Promise<string | null> {
   if (saved) return saved;
   const me = await apiRequest<{ elderId?: string }>(
     "/api/v1/elder-profiles/me",
-  ).catch(() => null);
+  ).catch((e) => {
+    console.warn("내 프로필 불러오기 실패", e);
+    return null;
+  });
   if (!me?.elderId) return null;
   await saveElderId(me.elderId);
   return me.elderId;
