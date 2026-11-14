@@ -250,14 +250,14 @@ const timeOf = (a: ServerAppointmentItem) =>
       ? new Date(`${a.appointmentDate}T00:00:00`).getTime()
       : Infinity;
 
-/** GET /api/v1/appointments (오늘부터 90일) → 홈 목록 (가까운 일정부터) */
+/** GET /api/v1/appointments (오늘부터 1년) → 홈 목록 (가까운 일정부터) */
 export async function loadMyAppointments(): Promise<void> {
   const elderId = await ensureElderId();
   if (!elderId) return;
   const from = new Date();
   from.setHours(0, 0, 0, 0);
   const to = new Date(from);
-  to.setDate(to.getDate() + 90);
+  to.setDate(to.getDate() + 365); // 날짜만 말하면 지난 날짜는 내년으로 잡혀서 넉넉히
   const params = new URLSearchParams({
     elderId,
     from: from.toISOString(),

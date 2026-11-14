@@ -18,15 +18,24 @@ import {
   getElderProfile,
   updateElderProfile,
   type ElderProfile,
+  type MobilityAid,
 } from "@/api/elderProfile";
 import { AppButton } from "@/components/AppButton";
 import { AppText } from "@/components/AppText";
 import { BottomNav } from "@/components/BottomNav";
+import { ChoiceButton } from "@/components/ChoiceButton";
 import { SettingsCard } from "@/components/guardian/SettingsCard";
 import { Icon } from "@/components/Icon";
 import { colors, palette } from "@/constants/theme";
 
 type Section = { id: string; title: string; value: string; editable: boolean };
+
+const AID_CHOICES: [MobilityAid, string][] = [
+  ["WHEELCHAIR", "휠체어를 사용해요"],
+  ["WALKER", "보행기를 사용해요"],
+  ["CANE", "지팡이를 사용해요"],
+  ["NONE", "아무것도 사용하지 않아요"],
+];
 
 const AID_LABEL: Record<string, string> = {
   WHEELCHAIR: "휠체어",
@@ -43,6 +52,7 @@ function toSections(p: ElderProfile): Section[] {
   const mobility = [
     AID_LABEL[p.mobility?.mobilityAid ?? ""] ?? "",
     p.mobility?.stairsDifficult ? "계단 어려움" : "",
+    p.mobility?.walkingDiscomfort ? "걷기 불편" : "",
   ].filter(Boolean);
   return [
     {
@@ -55,7 +65,7 @@ function toSections(p: ElderProfile): Section[] {
       id: "health",
       title: "평소 이동 · 건강",
       value: mobility.join(" · ") || "없음",
-      editable: false,
+      editable: true, // 글자 대신 아래 선택 버튼으로 수정
     },
     {
       id: "display",
@@ -98,6 +108,11 @@ export default function MyInfoScreen() {
   const [draft, setDraft] = useState<Section[]>([]);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  // 평소 이동·건강 (수정할 때 선택 버튼으로)
+  const [profile, setProfile] = useState<ElderProfile | null>(null);
+  const [aid, setAid] = useState<MobilityAid>("NONE");
+  const [stairs, setStairs] = useState(false);
+  const [walking, setWalking] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -108,7 +123,9 @@ export default function MyInfoScreen() {
         return;
       }
       try {
-        setSections(toSections(await getElderProfile(id)));
+        const p = await getElderProfile(id);
+        setProfile(p);
+        setSections(toSections(p));
       } catch {
         setSections([]);
       }
@@ -117,6 +134,9 @@ export default function MyInfoScreen() {
 
   const startEdit = () => {
     setDraft(sections ?? []);
+    setAid((profile?.mobility?.mobilityAid as MobilityAid) ?? "NONE");
+    setStairs(!!profile?.mobility?.stairsDifficult);
+    setWalking(!!profile?.mobility?.walkingDiscomfort);
     setEditing(true);
   };
 
@@ -134,7 +154,18 @@ export default function MyInfoScreen() {
           );
           return;
         }
-        const saved = await updateElderProfile(elderId, { name, homeAddress });
+        const saved = await updateElderProfile(elderId, {
+          name,
+          homeAddress,
+          // 화면에 없는 칸(버스·오래 걷기)은 기존 값 유지
+          mobility: {
+            ...profile?.mobility,
+            mobilityAid: aid,
+            stairsDifficult: stairs,
+            walkingDiscomfort: walking,
+          },
+        });
+        setProfile(saved);
         setSections(toSections(saved));
       }
       setEditing(false);
@@ -182,7 +213,36 @@ export default function MyInfoScreen() {
         )}
 
         <View style={styles.list}>
-          {list.map((section, i) => (
+          {list.map((section, i) =>
+            editing && section.id === "health" ? (
+              <View key={section.id} style={styles.mobilityEdit}>
+                <AppText
+                  variant="body"
+                  weight="semibold"
+                  color={palette.green600}
+                >
+                  {section.title}
+                </AppText>
+                {AID_CHOICES.map(([value, label]) => (
+                  <ChoiceButton
+                    key={value}
+                    label={label}
+                    selected={aid === value}
+                    onPress={() => setAid(value)}
+                  />
+                ))}
+                <ChoiceButton
+                  label="계단 이용이 힘들어요"
+                  selected={stairs}
+                  onPress={() => setStairs((v) => !v)}
+                />
+                <ChoiceButton
+                  label="걷는 게 불편해요"
+                  selected={walking}
+                  onPress={() => setWalking((v) => !v)}
+                />
+              </View>
+            ) : (
             <SettingsCard
               key={section.id}
               title={section.title}
@@ -197,7 +257,8 @@ export default function MyInfoScreen() {
                 )
               }
             />
-          ))}
+            ),
+          )}
         </View>
 
         {!!sections?.length && (
@@ -223,20 +284,20 @@ export default function MyInfoScreen() {
           </Pressable>
         )}
 
-        {!editing && !!elderId && (
-          <AppButton
-            label="집 위치 등록하기"
-            variant="outline"
-            onPress={() => router.push("/home-location")}
-          />
-        )}
-
-        {!editing && !!elderId && (
-          <AppButton
-            label="보호자 연결 번호 보기"
-            variant="outline"
-            onPress={() => router.push("/link-code")}
-          />
+        {/* 정보를 못 불러와도 항상 보이게 */}
+        {!editing && (
+          <View style={styles.links}>
+            <AppButton
+              label="집 위치 등록하기"
+              variant="outline"
+              onPress={() => router.push("/home-location")}
+            />
+            <AppButton
+              label="보호자 연결 번호 보기"
+              variant="outline"
+              onPress={() => router.push("/link-code")}
+            />
+          </View>
         )}
       </ScrollView>
 
@@ -270,4 +331,6 @@ const styles = StyleSheet.create({
     backgroundColor: palette.green400,
   },
   editButtonPressed: { backgroundColor: palette.green500 },
+  mobilityEdit: { gap: 8 },
+  links: { marginTop: 20, gap: 10 },
 });
