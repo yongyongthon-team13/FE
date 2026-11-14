@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
+import { parseDate, parseTime } from "@/api/appointments";
 import {
   getCompanionAssessment,
   type CompanionAssessment,
@@ -23,6 +24,16 @@ export default function CompanionScreen() {
   useEffect(() => {
     getCompanionAssessment(id).then(setAssessment);
   }, [id]);
+
+  // 동행 서비스는 진료 일주일 전까지만 예약 가능 → 7일 안이면 신청 막기
+  // (날짜를 모르면 막지 않음, 시간을 모르면 그날 0시 기준)
+  const tooLate = (() => {
+    const date = appointment ? parseDate(appointment.date) : null;
+    if (!date) return false;
+    const time = parseTime(appointment!.time) ?? "00:00";
+    const at = new Date(`${date}T${time}:00+09:00`).getTime();
+    return at - Date.now() < 7 * 24 * 60 * 60 * 1000;
+  })();
 
   if (!assessment) {
     return (
@@ -49,9 +60,19 @@ export default function CompanionScreen() {
             variant="secondary"
             onPress={() => router.replace("/home")}
           />
+          {tooLate && (
+            <AppText
+              variant="body"
+              color={palette.green300}
+              style={styles.notice}
+            >
+              {"동행 서비스는 진료 일주일 전까지만\n예약할 수 있어요"}
+            </AppText>
+          )}
           <AppButton
             label="신청하기"
             variant="primary"
+            disabled={tooLate}
             onPress={() =>
               router.push({ pathname: "/companion-request", params: { id } })
             }
@@ -93,6 +114,7 @@ export default function CompanionScreen() {
 }
 
 const styles = StyleSheet.create({
+  notice: { textAlign: "center" },
   mascot: {
     alignItems: "center",
   },

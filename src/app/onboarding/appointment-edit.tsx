@@ -1,5 +1,4 @@
 import {
-  isDraftComplete,
   saveAppointment,
   type AppointmentDraft,
 } from "@/api/appointments";
@@ -114,7 +113,6 @@ export default function AppointmentEditScreen() {
         <AppButton
           label="완료하기"
           variant="primary"
-          disabled={!isDraftComplete(draft)}
           onPress={async () => {
             try {
               const id = await saveAppointment(

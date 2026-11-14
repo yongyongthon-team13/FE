@@ -40,7 +40,7 @@ export default function HomeScreen() {
   // 홈에 올 때마다 서버 일정 다시 불러오기
   useFocusEffect(
     useCallback(() => {
-      loadMyAppointments().catch(() => {});
+      loadMyAppointments().catch((e) => console.warn("일정 불러오기 실패", e));
     }, []),
   );
 
