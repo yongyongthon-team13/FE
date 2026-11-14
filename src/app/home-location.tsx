@@ -28,6 +28,7 @@ export default function HomeLocationScreen() {
 
   const [address, setAddress] = useState("");
   const [candidates, setCandidates] = useState<HomeCandidate[] | null>(null);
+  const [searchFailed, setSearchFailed] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -41,10 +42,14 @@ export default function HomeLocationScreen() {
     if (address.trim().length < 2) return;
     setSearching(true);
     setSelected(null);
+    setSearchFailed(false);
     try {
       setCandidates(await searchHomeCandidates(address.trim()));
-    } catch {
-      setCandidates([]);
+    } catch (e) {
+      // 주소가 없는 게 아니라 요청이 실패한 경우는 따로 안내
+      console.warn("집 주소 찾기 실패", e);
+      setCandidates(null);
+      setSearchFailed(true);
     } finally {
       setSearching(false);
     }
@@ -114,6 +119,12 @@ export default function HomeLocationScreen() {
           </Pressable>
         }
       />
+
+      {searchFailed && (
+        <AppText variant="button" color={palette.green300} style={styles.empty}>
+          지금은 주소를 찾을 수 없어요. 잠시 후 다시 눌러 주세요
+        </AppText>
+      )}
 
       {candidates && candidates.length === 0 && (
         <AppText variant="button" color={palette.green300} style={styles.empty}>

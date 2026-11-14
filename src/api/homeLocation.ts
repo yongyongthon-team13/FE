@@ -24,11 +24,18 @@ export const DEFAULT_HOME = { latitude: 37.2342, longitude: 127.2017 };
 export async function searchHomeCandidates(
   address: string,
 ): Promise<HomeCandidate[]> {
-  const res = await apiRequest<{ candidates: HomeCandidate[] }>(
-    "/api/v1/elder-profiles/me/home-location/candidates",
-    { method: "POST", body: JSON.stringify({ address }) },
-  );
-  return res.candidates ?? [];
+  const search = async (q: string) =>
+    (
+      await apiRequest<{ candidates: HomeCandidate[] }>(
+        "/api/v1/elder-profiles/me/home-location/candidates",
+        { method: "POST", body: JSON.stringify({ address: q }) },
+      )
+    ).candidates ?? [];
+  const found = await search(address);
+  // '처인구 중부대로 1999'처럼 시 이름을 빼고 적으면 못 찾을 수 있어 '용인시'를 붙여 한 번 더
+  if (found.length === 0 && !address.includes("용인"))
+    return search(`경기도 용인시 ${address}`);
+  return found;
 }
 
 let cached: HomeLocation | null = null;

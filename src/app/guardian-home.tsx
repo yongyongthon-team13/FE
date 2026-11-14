@@ -26,13 +26,16 @@ import { TodayLogList } from "@/components/guardian/TodayLogList";
 import { TodayTripCard } from "@/components/guardian/TodayTripCard";
 import { TodoList } from "@/components/guardian/TodoList";
 import { UpcomingList } from "@/components/guardian/UpcomingList";
+import { AppText } from "@/components/AppText";
 import { colors } from "@/constants/theme";
+import { ApiError } from "@/lib/api";
 import { callPhone, textPhone } from "@/lib/call";
 
 /** 보호자 홈 (평소 / 진료 당일 이동 중) */
 export default function GuardianHomeScreen() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<GuardianHome | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const prevStatus = useRef<ElderStatus | null>(null);
 
@@ -55,8 +58,17 @@ export default function GuardianHomeScreen() {
           }
           prevStatus.current = next.status;
           setData(next);
+          setLoadFailed(false);
         })
-        .catch(() => {});
+        .catch((e) => {
+          console.warn("보호자 홈 불러오기 실패", e);
+          // 연결된 어르신이 없으면 연결 화면으로
+          if (e instanceof ApiError && e.title === "NO_ELDER") {
+            router.replace("/guardian-link");
+            return;
+          }
+          setLoadFailed(true);
+        });
     load();
     const timer = setInterval(load, 30_000);
     return () => clearInterval(timer);
@@ -65,7 +77,13 @@ export default function GuardianHomeScreen() {
   if (!data) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
+        {loadFailed ? (
+          <AppText variant="body" color={colors.subtle} style={styles.failText}>
+            {"정보를 불러오지 못했어요.\n잠시 후 자동으로 다시 불러와요"}
+          </AppText>
+        ) : (
+          <ActivityIndicator color={colors.accent} />
+        )}
       </View>
     );
   }
@@ -173,6 +191,7 @@ export default function GuardianHomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  failText: { textAlign: "center" },
   loading: {
     flex: 1,
     alignItems: "center",

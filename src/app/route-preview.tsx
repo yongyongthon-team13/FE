@@ -49,7 +49,8 @@ export default function RoutePreviewScreen() {
       setPlans(next);
       setSeenIds([...exclude, ...next.map((p) => p.id)]);
       setSelectedId(null);
-    } catch {
+    } catch (e) {
+      console.warn("길 찾기 실패", e);
       setError(true);
     } finally {
       setLoading(false);
