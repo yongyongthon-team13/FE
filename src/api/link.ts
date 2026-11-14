@@ -1,6 +1,7 @@
 // src/api/link.ts
 // 어르신 앱 ↔ 보호자 앱 연결
 // 흐름: 어르신 앱이 연결 번호를 받아 화면에 띄움 → 보호자가 번호 입력 → 서버가 두 계정을 연결
+import { ensureElderId } from "@/api/elderProfile";
 import { ApiError, apiRequest } from "@/lib/api";
 import {
   clearElderId,
@@ -32,17 +33,7 @@ export type ElderSummary = {
 
 /** 어르신 앱: POST /api/v1/elder-profiles/{elderId}/guardian-link-codes */
 export async function requestLinkCode(): Promise<LinkCode> {
-  // 기기에 저장된 id가 없으면(다른 기기·다시 로그인) 서버의 내 프로필에서 가져와 저장
-  let elderId = await getElderId();
-  if (!elderId) {
-    const me = await apiRequest<{ elderId?: string }>(
-      "/api/v1/elder-profiles/me",
-    ).catch(() => null);
-    if (me?.elderId) {
-      elderId = me.elderId;
-      await saveElderId(elderId);
-    }
-  }
+  const elderId = await ensureElderId();
   if (!elderId) throw new ApiError(400, "NO_ELDER", "어르신 정보가 없어요");
   return apiRequest<LinkCode>(
     `/api/v1/elder-profiles/${elderId}/guardian-link-codes`,

@@ -1,4 +1,5 @@
 // src/app/onboarding/discomfort.tsx
+import { ensureElderId } from "@/api/elderProfile";
 import { router } from "expo-router";
 
 import { toElderProfileRequest, updateElderProfile } from "@/api/elderProfile";
@@ -7,7 +8,6 @@ import { ScreenLayout } from "@/components/ScreenLayout";
 import { VoiceAnswer } from "@/components/VoiceAnswer";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { cleanText } from "@/lib/parseSpeech";
-import { getElderId } from "@/lib/tokenStorage";
 import { onboarding } from "@/store/onboarding";
 
 /** '없어요', '괜찮아요' 등이면 불편 없음 */
@@ -22,7 +22,7 @@ export default function DiscomfortScreen() {
     const text = cleanText(voice.transcript);
     onboarding.discomfort = text;
     // 프로필은 앞 화면에서 만들었으니 걷기 불편 여부만 추가로 저장 (실패해도 다음으로)
-    const elderId = await getElderId();
+    const elderId = await ensureElderId();
     if (text && elderId) {
       updateElderProfile(elderId, {
         mobility: {

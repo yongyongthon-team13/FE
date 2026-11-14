@@ -72,20 +72,7 @@ export default function HospitalScreen() {
           label="직접 일정 만들기"
           title="갈 병원이 정해져 있어요"
           desc="진료과와 날짜를 말씀해 주세요"
-          onPress={() =>
-            router.push({
-              pathname: "/onboarding/appointment-edit",
-              params: {
-                mode: "new",
-                source: "MANUAL",
-                hospital: "",
-                date: "",
-                time: "",
-                department: "",
-                scale: "",
-              },
-            })
-          }
+          onPress={() => router.push("/symptom")}
         />
       </ScrollView>
 
@@ -166,5 +153,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 2,
+    // 디자인 그림자: 아래로 8, 흐림 12, #213314 8%
+    shadowColor: "#213314",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
 });
