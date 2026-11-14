@@ -6,7 +6,7 @@ import { AppText } from '@/components/AppText';
 import { colors } from '@/constants/theme';
 
 export default function OnboardingIntroScreen() {
-  const goNext = () => router.replace('/onboarding/name');
+  const goNext = () => router.replace('/onboarding/birth-year');
 
   useEffect(() => {
     const timer = setTimeout(goNext, 3000);

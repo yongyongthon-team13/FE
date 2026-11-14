@@ -39,13 +39,11 @@ function Field({
 export default function ConfirmScreen() {
   const [name, setName] = useState(onboarding.name);
   const [birthYear, setBirthYear] = useState(onboarding.birthYear);
-  const [address, setAddress] = useState(onboarding.homeAddress);
 
   const handleConfirm = () => {
     onboarding.name = name.trim();
     onboarding.birthYear = birthYear;
-    onboarding.homeAddress = address.trim();
-    router.push('/onboarding/mobility');
+    router.push('/onboarding/consent');
   };
 
   return (
@@ -66,7 +64,6 @@ export default function ConfirmScreen() {
           onChangeText={text => setBirthYear(text.replace(/[^0-9]/g, '').slice(0, 4))}
           keyboardType="number-pad"
         />
-        <Field label="집 주소" value={address} onChangeText={setAddress} />
       </View>
     </ScreenLayout>
   );

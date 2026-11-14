@@ -14,7 +14,6 @@ import { Icon, type IconName } from "@/components/Icon";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { colors, palette } from "@/constants/theme";
 
-const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
 const HEADLINE = "오늘은 차로 이동하시는 것을\n추천드립니다";
 
 // 특보 종류별 아이콘·안내 문구 (특보 이름·기온은 API 값 그대로 사용)
@@ -43,6 +42,7 @@ const ALERT_COPY: Record<WeatherAlertType, { icon: IconName; reason: string }> =
     },
   };
 export default function WeatherAlertScreen() {
+  const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
   const [weather, setWeather] = useState<TodayWeather | null>(null);
 
   useEffect(() => {
