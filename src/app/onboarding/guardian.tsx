@@ -21,14 +21,9 @@ const RELATIONS = ["자녀", "배우자", "형제·자매", "기타"];
 type Guardian = { name: string; phone: string; relation: string | null };
 const emptyGuardian = (): Guardian => ({ name: "", phone: "", relation: null });
 
-const isFilled = (g: Guardian) =>
-  g.name.trim() !== "" && g.phone.trim() !== "" && g.relation !== null;
-
 export default function GuardianScreen() {
   const [guardians, setGuardians] = useState<Guardian[]>([emptyGuardian()]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-
-  const canComplete = guardians.some(isFilled);
 
   const update = (i: number, patch: Partial<Guardian>) =>
     setGuardians((prev) =>
@@ -38,15 +33,13 @@ export default function GuardianScreen() {
   return (
     <ScreenLayout
       onBack={() => router.back()}
-      rightText="건너뛰기 없음"
       eyebrow="4 / 4"
       title={TEXT.title}
       bodyPaddingTop={57}
       footer={
         <AppButton
           label="완료하기"
-          variant={canComplete ? "primary" : "outline"}
-          disabled={!canComplete}
+          variant="primary"
           onPress={() =>
             router.replace({
               pathname: "/link-code",
