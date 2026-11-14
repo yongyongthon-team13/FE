@@ -32,7 +32,17 @@ export type ElderSummary = {
 
 /** 어르신 앱: POST /api/v1/elder-profiles/{elderId}/guardian-link-codes */
 export async function requestLinkCode(): Promise<LinkCode> {
-  const elderId = await getElderId();
+  // 기기에 저장된 id가 없으면(다른 기기·다시 로그인) 서버의 내 프로필에서 가져와 저장
+  let elderId = await getElderId();
+  if (!elderId) {
+    const me = await apiRequest<{ elderId?: string }>(
+      "/api/v1/elder-profiles/me",
+    ).catch(() => null);
+    if (me?.elderId) {
+      elderId = me.elderId;
+      await saveElderId(elderId);
+    }
+  }
   if (!elderId) throw new ApiError(400, "NO_ELDER", "어르신 정보가 없어요");
   return apiRequest<LinkCode>(
     `/api/v1/elder-profiles/${elderId}/guardian-link-codes`,

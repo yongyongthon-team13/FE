@@ -33,7 +33,8 @@ export default function LinkCodeScreen() {
     setLinkCode(null);
     try {
       setLinkCode(await requestLinkCode());
-    } catch {
+    } catch (e) {
+      console.warn("연결 번호 받기 실패", e);
       setFailed(true);
     }
   }, []);

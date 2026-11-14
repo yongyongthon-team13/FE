@@ -53,16 +53,6 @@ export default function HomeScreen() {
             홈
           </AppText>
         </View>
-        {/* 로고 자리 */}
-        <View style={styles.logo}>
-          <AppText
-            variant="button"
-            weight="semibold"
-            color={colors.textOnPrimary}
-          >
-            로고
-          </AppText>
-        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -182,13 +172,6 @@ const styles = StyleSheet.create({
     paddingRight: 11,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
-  logo: {
-    width: 51,
-    height: 42,
-    backgroundColor: palette.green600,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   content: {
     paddingHorizontal: 30,
     paddingTop: 40,

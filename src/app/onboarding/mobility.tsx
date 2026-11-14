@@ -25,6 +25,7 @@ export default function MobilityScreen() {
     <ScreenLayout
       onBack={() => router.back()}
       rightText="건너뛰기 없음"
+      bodyPaddingTop={40}
       eyebrow="2 / 4"
       title={'걸으실 때 무엇을\n사용하시나요?'}
       footer={
