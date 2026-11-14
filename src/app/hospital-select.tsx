@@ -1,3 +1,4 @@
+import { ensureElderId } from "@/api/elderProfile";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
@@ -8,12 +9,11 @@ import { AppButton } from "@/components/AppButton";
 import { AppText } from "@/components/AppText";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { colors, palette } from "@/constants/theme";
-import { getElderId } from "@/lib/tokenStorage";
 
 /** 어르신 주소에서 동네(구) 뽑기. 예: '용인시 처인구 ...' → '처인구' */
 async function getDistrict(): Promise<string | undefined> {
   try {
-    const elderId = await getElderId();
+    const elderId = await ensureElderId();
     if (!elderId) return undefined;
     const profile = await getElderProfile(elderId);
     return profile.homeAddress?.match(/\S+구/)?.[0];

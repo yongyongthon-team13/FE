@@ -1,7 +1,7 @@
 // src/api/companion.ts
 // 동행 서비스: 필요 판단(규칙) → 신청 → 전화 후 결과
+import { ensureElderId } from "@/api/elderProfile";
 import { apiRequest } from "@/lib/api";
-import { getElderId } from "@/lib/tokenStorage";
 import { getElderProfile } from "./elderProfile";
 
 const won = (n?: number | null) =>
@@ -94,7 +94,7 @@ export async function getCompanionRequestDraft(
   // 보조기구는 신청 응답에 없어서 어르신 정보에서 가져옴
   let mobilityAid = "";
   try {
-    const elderId = await getElderId();
+    const elderId = await ensureElderId();
     if (elderId)
       mobilityAid =
         AID_LABEL[

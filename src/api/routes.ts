@@ -1,7 +1,7 @@
 // src/api/routes.ts
 // 병원까지 경로 찾기: POST /api/v1/route-plans/search, GET /api/v1/route-plans/{id}
+import { ensureElderId } from "@/api/elderProfile";
 import { apiData, apiRequest } from "@/lib/api";
-import { getElderId } from "@/lib/tokenStorage";
 import { getHomePoint } from "./homeLocation";
 
 const SEARCH_MODE = "TRANSIT"; // 검색: WALK | TRANSIT
@@ -87,7 +87,7 @@ async function fetchPlans(appointmentId: string): Promise<RoutePlan[]> {
   };
 
   // 1) AI 추천: POST /api/v1/route-plans/recommendations (어르신 몸 상태 반영)
-  const elderId = await getElderId();
+  const elderId = await ensureElderId();
   if (elderId) {
     try {
       const rec = await apiData<{

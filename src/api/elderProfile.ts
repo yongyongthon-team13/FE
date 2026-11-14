@@ -1,6 +1,7 @@
 // src/api/elderProfile.ts
 // 어르신 프로필 등록 (로그인 후, access token 필요)
 import { apiRequest } from "@/lib/api";
+import { getElderId, saveElderId } from "@/lib/tokenStorage";
 import type { Aid, StairsAnswer } from "@/store/onboarding";
 
 export type MobilityAid = "NONE" | "CANE" | "WALKER" | "WHEELCHAIR" | "OTHER";
@@ -108,4 +109,16 @@ export async function saveConsents(
         ),
     ),
   );
+}
+
+/** 어르신 id: 기기에 없으면(다른 기기·다시 설치) 서버의 내 프로필에서 가져와 저장 */
+export async function ensureElderId(): Promise<string | null> {
+  const saved = await getElderId();
+  if (saved) return saved;
+  const me = await apiRequest<{ elderId?: string }>(
+    "/api/v1/elder-profiles/me",
+  ).catch(() => null);
+  if (!me?.elderId) return null;
+  await saveElderId(me.elderId);
+  return me.elderId;
 }

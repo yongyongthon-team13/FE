@@ -1,7 +1,7 @@
 // src/api/appointments.ts
 // 병원 문자 → 일정 뽑기(AI) / 일정 저장
+import { ensureElderId } from "@/api/elderProfile";
 import { ApiError, apiRequest } from "@/lib/api";
-import { getElderId } from "@/lib/tokenStorage";
 import { addAppointment, setAppointments } from "@/store/appointments";
 import { Platform } from "react-native";
 
@@ -192,7 +192,7 @@ export async function saveAppointment(
     clinicAddress?: string;
   } = {},
 ): Promise<string> {
-  const elderId = await getElderId();
+  const elderId = await ensureElderId();
   if (!elderId) throw new ApiError(400, "NO_ELDER", "어르신 정보가 없어요");
 
   const date = parseDate(draft.date);
@@ -252,7 +252,7 @@ const timeOf = (a: ServerAppointmentItem) =>
 
 /** GET /api/v1/appointments (오늘부터 90일) → 홈 목록 (가까운 일정부터) */
 export async function loadMyAppointments(): Promise<void> {
-  const elderId = await getElderId();
+  const elderId = await ensureElderId();
   if (!elderId) return;
   const from = new Date();
   from.setHours(0, 0, 0, 0);

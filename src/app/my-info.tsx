@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  ensureElderId,
   getElderProfile,
   updateElderProfile,
   type ElderProfile,
@@ -24,7 +25,6 @@ import { BottomNav } from "@/components/BottomNav";
 import { SettingsCard } from "@/components/guardian/SettingsCard";
 import { Icon } from "@/components/Icon";
 import { colors, palette } from "@/constants/theme";
-import { getElderId } from "@/lib/tokenStorage";
 
 type Section = { id: string; title: string; value: string; editable: boolean };
 
@@ -101,7 +101,7 @@ export default function MyInfoScreen() {
 
   useEffect(() => {
     (async () => {
-      const id = await getElderId();
+      const id = await ensureElderId();
       setElderId(id);
       if (!id) {
         setSections([]);
