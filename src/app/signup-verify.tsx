@@ -14,8 +14,8 @@ const CODE_LENGTH = 6;
 const RESEND_WAIT_SEC = 60; // 같은 번호로는 60초에 한 번만 다시 받을 수 있음
 
 // 인증 완료 후 이동할 화면
-const NEXT_ROUTE: Record<UserRole, '/onboarding/name' | '/guardian-link'> = {
-  ELDER: '/onboarding/name',
+const NEXT_ROUTE: Record<UserRole, '/onboarding/intro' | '/guardian-link'> = {
+  ELDER: '/onboarding/intro',
   GUARDIAN: '/guardian-link',
 };
 
