@@ -3,6 +3,8 @@
 import { ApiError, endSession, publicRequest } from "@/lib/api";
 import { registerPushToken, unregisterPushToken } from "@/lib/push";
 import {
+  clearElderId,
+  clearLinkId,
   getTokens,
   saveTokens,
   type AuthTokens,
@@ -27,6 +29,9 @@ export async function login(
     verificationCode,
     role,
   });
+  // 같은 기기에서 다른 계정으로 로그인하면 이전 계정의 어르신·연결 정보가 남아 있어서 지움
+  await clearElderId();
+  await clearLinkId();
   await saveTokens(tokens);
   registerPushToken(); // 기다리지 않음 (실패해도 로그인은 진행)
   return tokens;

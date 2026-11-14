@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { linkGuardian } from "@/api/link";
+import { ApiError } from "@/lib/api";
 import LinkGuide from "@/assets/images/link-guide.svg";
 import MascotHeart from "@/assets/images/mascot-heart.svg";
 import { AppButton } from "@/components/AppButton";
@@ -37,9 +38,17 @@ export default function GuardianLinkScreen() {
     try {
       await linkGuardian(code);
       router.replace("/guardian-home");
-    } catch {
-      const title = "연결 번호가 맞지 않아요";
-      const message = "어르신 화면의 번호를 다시 확인해 주세요";
+    } catch (e) {
+      console.warn("보호자 연결 실패", e);
+      // 400·404: 번호 틀림·만료 / 그 외: 서버·인터넷 문제
+      const wrongCode =
+        e instanceof ApiError && (e.status === 400 || e.status === 404);
+      const title = wrongCode
+        ? "연결 번호가 맞지 않아요"
+        : "지금은 연결할 수 없어요";
+      const message = wrongCode
+        ? "어르신 화면의 번호를 다시 확인해 주세요"
+        : "잠시 후 다시 시도해 주세요";
       // 웹에서는 Alert.alert가 동작하지 않아 브라우저 알림창 사용
       if (Platform.OS === "web") window.alert(`${title}\n${message}`);
       else Alert.alert(title, message);
