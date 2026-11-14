@@ -26,6 +26,7 @@ export default function LinkCodeScreen() {
 
   const [linkCode, setLinkCode] = useState<LinkCode | null>(null);
   const [failed, setFailed] = useState(false);
+  const [failReason, setFailReason] = useState("");
   const [now, setNow] = useState(Date.now());
 
   const load = useCallback(async () => {
@@ -35,6 +36,8 @@ export default function LinkCodeScreen() {
       setLinkCode(await requestLinkCode());
     } catch (e) {
       console.warn("연결 번호 받기 실패", e);
+      // 테스트하는 분이 원인을 알려줄 수 있게 화면에도 표시
+      setFailReason(e instanceof Error ? e.message : String(e));
       setFailed(true);
     }
   }, []);
@@ -95,6 +98,11 @@ export default function LinkCodeScreen() {
             style={styles.center}
           >
             {"번호를 받지 못했어요.\n새 번호 받기를 눌러 주세요"}
+          </AppText>
+        )}
+        {failed && !!failReason && (
+          <AppText variant="small" color={palette.green200} style={styles.center}>
+            {`(${failReason})`}
           </AppText>
         )}
 
