@@ -14,14 +14,17 @@ import { AppButton } from "@/components/AppButton";
 import { AlightStepView } from "@/components/guide/AlightStepView";
 import { ArrivedStepView } from "@/components/guide/ArrivedStepView";
 import { CounterHelpStepView } from "@/components/guide/CounterHelpStepView";
+import { DemoGuideMap } from "@/components/guide/DemoGuideMap";
 import { GuideLayout } from "@/components/guide/GuideLayout";
 import { LateCheckView } from "@/components/guide/LateCheckView";
+import { MapPreview } from "@/components/guide/MapPreview";
 import { NoResponseView } from "@/components/guide/NoResponseView";
 import { OnBusStepView } from "@/components/guide/OnBusStepView";
 import { RerouteView } from "@/components/guide/RerouteView";
 import { WaitBusStepView } from "@/components/guide/WaitBusStepView";
 import { WalkStepView } from "@/components/guide/WalkStepView";
 import { colors } from "@/constants/theme";
+import { useDemoRide } from "@/hooks/useDemoRide";
 import { useGuideSession } from "@/hooks/useGuideSession";
 import { useAppointments } from "@/store/appointments";
 
@@ -52,6 +55,14 @@ export default function GuideScreen() {
     end,
     checkIn,
   } = useGuideSession(routeId, appointmentId ?? appointments[0]?.id);
+
+  // 시연 안내: 고정 지도의 마커가 시연 경로를 따라 움직이고, 걷기 안내 문구도 마커 위치에 맞춰 바뀜
+  const ride = useDemoRide(!!session?.demo, step);
+  const map = session?.demo ? (
+    <DemoGuideMap position={ride.position} zoom={ride.zoom} />
+  ) : (
+    <MapPreview />
+  );
 
   const handleEnd = () => {
     const finish = async () => {
@@ -140,6 +151,7 @@ export default function GuideScreen() {
   if (rerouteOpen) {
     return (
       <GuideLayout
+        map={map}
         destination={session.destination}
         onEnd={handleEnd}
         footer={
@@ -167,6 +179,7 @@ export default function GuideScreen() {
     case "walk":
       return (
         <GuideLayout
+          map={map}
           destination={session.destination}
           onEnd={handleEnd}
           footer={
@@ -186,13 +199,14 @@ export default function GuideScreen() {
             </>
           }
         >
-          <WalkStepView step={step} />
+          <WalkStepView step={ride.walk ?? step} />
         </GuideLayout>
       );
 
     case "waitBus":
       return (
         <GuideLayout
+          map={map}
           destination={session.destination}
           onEnd={handleEnd}
           footer={
@@ -219,7 +233,11 @@ export default function GuideScreen() {
     case "onBus":
       // 버튼 없음: 남은 정거장 수는 실시간으로 바뀌고, 내릴 때가 되면 자동으로 다음 단계로 넘어감
       return (
-        <GuideLayout destination={session.destination} onEnd={handleEnd}>
+        <GuideLayout
+          map={map}
+          destination={session.destination}
+          onEnd={handleEnd}
+        >
           <OnBusStepView step={step} />
         </GuideLayout>
       );
@@ -227,6 +245,7 @@ export default function GuideScreen() {
     case "alight":
       return (
         <GuideLayout
+          map={map}
           destination={session.destination}
           onEnd={handleEnd}
           tone="alert"

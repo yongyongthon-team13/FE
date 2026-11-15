@@ -18,10 +18,12 @@ type Props = {
   tone?: 'default' | 'alert';
   /** 상단 목적지/안내 종료 헤더 숨기기 (창구에 보여주는 화면 등) */
   hideHeader?: boolean;
+  /** 헤더 아래 고정 지도 (스크롤해도 그대로, 단계가 바뀌어도 다시 그리지 않음) */
+  map?: ReactNode;
 };
 
 /** 경로 안내 공통 틀: 상단 목적지 + 안내 종료, 본문, 하단 버튼 */
-export function GuideLayout({ destination, onEnd, children, footer, tone = 'default', hideHeader = false }: Props) {
+export function GuideLayout({ destination, onEnd, children, footer, tone = 'default', hideHeader = false, map }: Props) {
   const insets = useSafeAreaInsets();
   const isAlert = tone === 'alert';
 
@@ -60,10 +62,13 @@ export function GuideLayout({ destination, onEnd, children, footer, tone = 'defa
         </View>
       )}
 
+      {map && <View style={styles.map}>{map}</View>}
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.body,
+          !!map && styles.bodyWithMap,
           hideHeader && styles.bodyNoHeader,
           isAlert && [styles.bodyAlert, { paddingBottom: insets.bottom + 40 }],
         ]}
@@ -100,6 +105,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   endButtonPressed: { backgroundColor: '#FFF0F0' },
+  map: { paddingHorizontal: 30, paddingTop: 12 },
+  bodyWithMap: { paddingTop: 20 },
   scroll: { flex: 1 },
   body: { paddingHorizontal: 30, paddingTop: 50, paddingBottom: 24 },
   bodyNoHeader: { paddingTop: 110 },

@@ -5,7 +5,11 @@ import * as Location from "expo-location";
 import { apiData, apiRequest } from "@/lib/api";
 import { SIZE_LABEL } from "./clinics";
 import type { Direction, GuideSession, GuideStep, OnBusStep, WaitBusStep } from "./guide";
-import { searchRoutePlans } from "./routes";
+import {
+  DEMO_DESTINATION,
+  findServerRoutePlanId,
+  searchRoutePlans,
+} from "./routes";
 
 export type TripEvent =
   | "BOARDED"
@@ -155,8 +159,12 @@ function toSteps(
   appt: Appointment | null,
   userName: string,
 ): GuideStep[] {
-  const steps: GuideStep[] = legsToSteps(plan);
+  return [...legsToSteps(plan), ...hospitalSteps(appt, userName)];
+}
 
+/** 병원 도착 → 창구에 보여줄 화면 (입력한 일정 정보로 채움) */
+function hospitalSteps(appt: Appointment | null, userName: string): GuideStep[] {
+  const steps: GuideStep[] = [];
   const at = appt?.appointmentAt ? new Date(appt.appointmentAt) : null;
   const day =
     at ??
@@ -228,6 +236,92 @@ export async function startTripSession(
       ...(appt?.clinicLat != null && appt?.clinicLon != null
         ? { latitude: appt.clinicLat, longitude: appt.clinicLon }
         : {}),
+    },
+  };
+}
+
+/** 시연용 안내: 화면은 시연 경로(용인착한마디의원)로, 창구 화면은 입력한 일정으로.
+ *  서버 이동 기록도 만들어서 보호자 화면에 출발·도착·알림이 연동되게 함 (실패하면 연동 없이 안내) */
+export async function startDemoTripSession(
+  appointmentId?: string,
+): Promise<GuideSession> {
+  const [appt, me] = await Promise.all([
+    appointmentId
+      ? apiRequest<Appointment>(`/api/v1/appointments/${appointmentId}`).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
+    apiRequest<{ name?: string }>("/api/v1/elder-profiles/me").catch(
+      () => null,
+    ),
+  ]);
+
+  let tripId = "mock-session"; // mock으로 시작하면 서버에 이벤트를 보내지 않음
+  let eta: string | null | undefined;
+  try {
+    const planId = await findServerRoutePlanId();
+    if (planId) {
+      const started = await apiData<Started>("/api/v1/trips", {
+        method: "POST",
+        body: JSON.stringify({ routePlanId: planId }),
+      });
+      tripId = started.tripId;
+      eta = started.estimatedArrivalAt;
+    }
+  } catch (e) {
+    console.warn("이동 기록 만들기 실패 → 보호자 연동 없이 안내", e);
+  }
+
+  const steps: GuideStep[] = [
+    {
+      id: "walk-1",
+      type: "walk",
+      title: "처인구청 정류장까지",
+      direction: "straight",
+      distanceM: 120,
+      instruction: "편의점이 보이면 왼쪽으로",
+      remainingM: 120,
+      remainingMin: 2,
+    },
+    {
+      id: "wait-1",
+      type: "waitBus",
+      stopName: "처인구청 정류장",
+      busNo: "10번",
+      arrivalMin: 4,
+      lowFloor: true,
+    },
+    {
+      id: "bus-1",
+      type: "onBus",
+      alightStop: DEMO_DESTINATION.stopName,
+      stopsLeft: 6,
+    },
+    { id: "alight-1", type: "alight" },
+    {
+      id: "walk-2",
+      type: "walk",
+      title: `${DEMO_DESTINATION.name}까지`,
+      direction: "left",
+      distanceM: 30,
+      instruction: "횡단보도를 건너 강남대역 쪽으로",
+      remainingM: 60,
+      remainingMin: 1,
+    },
+    ...hospitalSteps(appt, me?.name ?? ""),
+  ];
+
+  return {
+    id: tripId,
+    demo: true,
+    destination: DEMO_DESTINATION.name,
+    expectedArrivalAt:
+      eta ?? new Date(Date.now() + 35 * 60 * 1000).toISOString(),
+    steps,
+    destinationPoint: {
+      name: DEMO_DESTINATION.name,
+      latitude: DEMO_DESTINATION.latitude,
+      longitude: DEMO_DESTINATION.longitude,
     },
   };
 }

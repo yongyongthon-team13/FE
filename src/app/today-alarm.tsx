@@ -15,7 +15,7 @@ export default function TodayAlarmScreen() {
   const {
     appointmentId,
     time = "오전 10:00",
-    hospital = "OO병원",
+    hospital = "용인착한마디의원",
   } = useLocalSearchParams<{
     appointmentId?: string;
     time?: string;
