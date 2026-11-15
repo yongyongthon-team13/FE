@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { authErrorMessage, login, sendVerificationCode, type UserRole } from '@/api/auth';
+import { ensureElderId } from '@/api/elderProfile';
+import { ensureGuardianElderId } from '@/api/link';
 import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { FormField } from '@/components/FormField';
@@ -13,11 +15,17 @@ import { colors, palette } from '@/constants/theme';
 const CODE_LENGTH = 6;
 const RESEND_WAIT_SEC = 60; // 같은 번호로는 60초에 한 번만 다시 받을 수 있음
 
-// 인증 완료 후 이동할 화면
-const NEXT_ROUTE: Record<UserRole, '/onboarding/intro' | '/guardian-link'> = {
-  ELDER: '/onboarding/intro',
-  GUARDIAN: '/guardian-link',
-};
+/** 인증 완료 후 이동할 화면: 처음이면 온보딩·연결, 이미 했으면 홈 (온보딩은 한 번만) */
+async function nextRoute(role: UserRole) {
+  if (role === 'ELDER') {
+    // 서버에 어르신 프로필이 있으면 온보딩을 이미 마친 것
+    const elderId = await ensureElderId().catch(() => null);
+    return elderId ? '/home' : '/onboarding/intro';
+  }
+  // 이미 연결된 어르신이 있으면 보호자 홈
+  const elderId = await ensureGuardianElderId().catch(() => null);
+  return elderId ? '/guardian-home' : '/guardian-link';
+}
 
 const notify = (title: string, message: string) => {
   if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
@@ -42,7 +50,7 @@ export default function SignupVerifyScreen() {
     setBusy(true);
     try {
       await login(phone, code, role);
-      router.replace(NEXT_ROUTE[role]);
+      router.replace(await nextRoute(role));
     } catch (e) {
       const { title, message } = authErrorMessage(e);
       notify(title, message);
