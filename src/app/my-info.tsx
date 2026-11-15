@@ -20,6 +20,7 @@ import {
   type ElderProfile,
   type MobilityAid,
 } from "@/api/elderProfile";
+import { getPrimaryGuardian, type Guardian } from "@/api/guardian";
 import { AppButton } from "@/components/AppButton";
 import { AppText } from "@/components/AppText";
 import { BottomNav } from "@/components/BottomNav";
@@ -45,7 +46,11 @@ const AID_LABEL: Record<string, string> = {
 };
 
 /** 서버 프로필 → 카드 */
-function toSections(p: ElderProfile): Section[] {
+/** '01012345678' → '010-1234-5678' */
+const phoneText = (d: string) =>
+  d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : d;
+
+function toSections(p: ElderProfile, guardian: Guardian | null): Section[] {
   const age = p.birthYear
     ? `${new Date().getFullYear() - p.birthYear + 1}세`
     : "";
@@ -76,7 +81,12 @@ function toSections(p: ElderProfile): Section[] {
     {
       id: "guardian",
       title: "보호자",
-      value: "아래 버튼으로 연결 번호를 보여 주세요",
+      // 연결된 보호자가 있으면 이름·관계·번호, 없으면 연결 안내
+      value: guardian
+        ? [guardian.relation, guardian.name, phoneText(guardian.phone)]
+            .filter(Boolean)
+            .join(" · ")
+        : "아래 버튼으로 연결 번호를 보여 주세요",
       editable: false,
     },
   ];
@@ -110,6 +120,7 @@ export default function MyInfoScreen() {
   const [busy, setBusy] = useState(false);
   // 평소 이동·건강 (수정할 때 선택 버튼으로)
   const [profile, setProfile] = useState<ElderProfile | null>(null);
+  const [guardian, setGuardian] = useState<Guardian | null>(null);
   const [aid, setAid] = useState<MobilityAid>("NONE");
   const [stairs, setStairs] = useState(false);
   const [walking, setWalking] = useState(false);
@@ -123,9 +134,13 @@ export default function MyInfoScreen() {
         return;
       }
       try {
-        const p = await getElderProfile(id);
+        const [p, g] = await Promise.all([
+          getElderProfile(id),
+          getPrimaryGuardian(),
+        ]);
         setProfile(p);
-        setSections(toSections(p));
+        setGuardian(g);
+        setSections(toSections(p, g));
       } catch {
         setSections([]);
       }
@@ -166,7 +181,7 @@ export default function MyInfoScreen() {
           },
         });
         setProfile(saved);
-        setSections(toSections(saved));
+        setSections(toSections(saved, guardian));
       }
       setEditing(false);
     } catch {

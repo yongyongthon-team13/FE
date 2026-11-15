@@ -45,11 +45,20 @@ export async function publicRequest<T = void>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  // 서버가 응답하지 않으면 버튼이 계속 꺼져 있지 않게 15초 뒤 실패 처리
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw await toApiError(res);
   if (res.status === 202 || res.status === 204) return undefined as T;
   return (await res.json()) as T;
@@ -109,22 +118,31 @@ export async function apiRequest<T = void>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const send = (tokens: AuthTokens | null) =>
-    fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        // 사진 등 FormData는 Content-Type을 직접 넣지 않음 (자동으로 붙음)
-        ...(init.body instanceof FormData
-          ? {}
-          : { "Content-Type": "application/json" }),
-        ...(init.headers ?? {}),
-        ...(tokens
-          ? {
-              Authorization: `${tokens.tokenType || "Bearer"} ${tokens.accessToken}`,
-            }
-          : {}),
-      },
-    });
+  // 서버가 응답하지 않으면 화면이 계속 로딩만 돌지 않게 40초 뒤 실패 처리 (AI 문자·사진 분석이 느릴 수 있어 넉넉히)
+  const send = async (tokens: AuthTokens | null) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 40_000);
+    try {
+      return await fetch(`${API_BASE_URL}${path}`, {
+        ...init,
+        signal: init.signal ?? controller.signal,
+        headers: {
+          // 사진 등 FormData는 Content-Type을 직접 넣지 않음 (자동으로 붙음)
+          ...(init.body instanceof FormData
+            ? {}
+            : { "Content-Type": "application/json" }),
+          ...(init.headers ?? {}),
+          ...(tokens
+            ? {
+                Authorization: `${tokens.tokenType || "Bearer"} ${tokens.accessToken}`,
+              }
+            : {}),
+        },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
 
   let res = await send(await validAccessToken());
 
