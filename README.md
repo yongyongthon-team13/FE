@@ -8,7 +8,7 @@
 
 | 구분            | 링크                                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 안드로이드 APK  | https://expo.dev/accounts/yongyongthon-team13/projects/yongyongthon-team13/builds/edcb98ae-b755-429c-b703-6b7c6b309ab6 |
+| 안드로이드 APK  | https://expo.dev/accounts/yongyongthon-team13/projects/yongyongthon-team13/builds/9bcf8df1-4364-4aa1-a2af-f6d1bdd49856 |
 | 웹 미리보기     | https://yongyongthon-team13.expo.app                                                                                   |
 | 백엔드 API 문서 | http://161.33.148.35:8080/swagger-ui/index.html                                                                        |
 
