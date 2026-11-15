@@ -104,3 +104,16 @@ export function listenAlarmTap(): () => void {
   const sub = Notifications.addNotificationResponseReceivedListener(open);
   return () => sub.remove();
 }
+
+/** 지금 바로 알림 띄우기 (보호자: 출발·도착 등). 웹은 브라우저 알림창 */
+export async function notifyNow(title: string, body: string): Promise<void> {
+  if (Platform.OS === "web") {
+    window.alert(`${title}\n${body}`);
+    return;
+  }
+  if (!(await ensurePermission())) return;
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body },
+    trigger: null,
+  });
+}

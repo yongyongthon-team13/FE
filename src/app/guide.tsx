@@ -1,5 +1,6 @@
 // src/app/guide.tsx
 import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 
 import { getPrimaryGuardian } from "@/api/guardian";
+import { sendTripLocation } from "@/api/trips";
 import { AppButton } from "@/components/AppButton";
 import { AlightStepView } from "@/components/guide/AlightStepView";
 import { ArrivedStepView } from "@/components/guide/ArrivedStepView";
@@ -58,6 +60,24 @@ export default function GuideScreen() {
 
   // 시연 안내: 고정 지도의 마커가 시연 경로를 따라 움직이고, 걷기 안내 문구도 마커 위치에 맞춰 바뀜
   const ride = useDemoRide(!!session?.demo, step);
+  // 시연 안내: 마커 위치를 5초마다 이동 기록에 보내서 보호자 지도에서도 같이 움직이게
+  const ridePos = useRef(ride.position);
+  ridePos.current = ride.position;
+  const demoTripId =
+    session?.demo && !session.id.startsWith("mock") ? session.id : null;
+  const arrivedNow = step?.type === "arrived" || step?.type === "counterHelp";
+  useEffect(() => {
+    if (!demoTripId || arrivedNow) return;
+    const send = () =>
+      sendTripLocation(demoTripId, {
+        latitude: ridePos.current[0],
+        longitude: ridePos.current[1],
+      }).catch(() => {});
+    send();
+    const t = setInterval(send, 5000);
+    return () => clearInterval(t);
+  }, [demoTripId, arrivedNow]);
+
   const map = session?.demo ? (
     <DemoGuideMap position={ride.position} zoom={ride.zoom} />
   ) : (

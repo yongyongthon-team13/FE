@@ -297,3 +297,11 @@ export async function loadMyAppointments(): Promise<void> {
       }),
   );
 }
+
+/** 병원 도착 후 안내 종료 → 일정 완료(COMPLETED): 어르신·보호자 일정 목록에서 빠짐 */
+export async function completeAppointment(appointmentId: string): Promise<void> {
+  await apiRequest(`/api/v1/appointments/${appointmentId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "COMPLETED" }),
+  });
+}
