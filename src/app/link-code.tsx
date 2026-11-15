@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
+import { getPrimaryGuardian, type Guardian } from "@/api/guardian";
 import { requestLinkCode, type LinkCode } from "@/api/link";
 import MascotHeart from "@/assets/images/mascot-heart.svg";
 import { AppButton } from "@/components/AppButton";
@@ -28,6 +29,8 @@ export default function LinkCodeScreen() {
   const [failed, setFailed] = useState(false);
   const [failReason, setFailReason] = useState("");
   const [now, setNow] = useState(Date.now());
+  // 보호자가 번호를 입력해 연결되면 채워짐 → '완료하기' 버튼
+  const [linked, setLinked] = useState<Guardian | null>(null);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -45,6 +48,22 @@ export default function LinkCodeScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // 연결됐는지 3초마다 확인 (이미 연결돼 있으면 바로 표시)
+  useEffect(() => {
+    if (linked) return;
+    let alive = true;
+    const check = () =>
+      getPrimaryGuardian().then((g) => {
+        if (alive && g) setLinked(g);
+      });
+    check();
+    const t = setInterval(check, 3000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [linked]);
 
   // 남은 시간 1초마다 갱신
   useEffect(() => {
@@ -66,12 +85,26 @@ export default function LinkCodeScreen() {
       bodyPaddingTop={28}
       footer={
         <View style={styles.footer}>
-          <AppButton label="새 번호 받기" variant="secondary" onPress={load} />
-          <AppButton
-            label={fromOnboarding ? "나중에 연결할게요" : "확인"}
-            variant="primary"
-            onPress={handleNext}
-          />
+          {linked ? (
+            <AppButton
+              label="완료하기"
+              variant="primary"
+              onPress={handleNext}
+            />
+          ) : (
+            <>
+              <AppButton
+                label="새 번호 받기"
+                variant="secondary"
+                onPress={load}
+              />
+              <AppButton
+                label={fromOnboarding ? "나중에 연결할게요" : "확인"}
+                variant="primary"
+                onPress={handleNext}
+              />
+            </>
+          )}
         </View>
       }
     >
@@ -89,9 +122,21 @@ export default function LinkCodeScreen() {
       </View>
 
       <View style={styles.codeBox}>
-        {!linkCode && !failed && <ActivityIndicator color={colors.accent} />}
+        {linked && (
+          <AppText
+            variant="heading"
+            weight="semibold"
+            color={palette.green700}
+            style={styles.center}
+          >
+            {`${linked.relation || "보호자"}${linked.name ? ` ${linked.name}` : ""}님과\n연결됐어요`}
+          </AppText>
+        )}
+        {!linked && !linkCode && !failed && (
+          <ActivityIndicator color={colors.accent} />
+        )}
 
-        {failed && (
+        {!linked && failed && (
           <AppText
             variant="body"
             color={palette.green300}
@@ -100,13 +145,17 @@ export default function LinkCodeScreen() {
             {"번호를 받지 못했어요.\n새 번호 받기를 눌러 주세요"}
           </AppText>
         )}
-        {failed && !!failReason && (
-          <AppText variant="small" color={palette.green200} style={styles.center}>
+        {!linked && failed && !!failReason && (
+          <AppText
+            variant="small"
+            color={palette.green200}
+            style={styles.center}
+          >
             {`(${failReason})`}
           </AppText>
         )}
 
-        {linkCode && (
+        {!linked && linkCode && (
           <>
             <AppText
               style={[styles.code, expired && styles.codeExpired]}
