@@ -17,6 +17,7 @@ import {
   type ReroutePlan,
 } from "@/api/guide";
 
+import { completeAppointment } from "@/api/appointments";
 import { sendCheckIn, sendTripEvent, sendTripLocation } from "@/api/trips";
 import * as Location from "expo-location";
 
@@ -159,8 +160,10 @@ export function useGuideSession(routeId?: string, appointmentId?: string) {
   const hasArrived = step?.type === "arrived" || step?.type === "counterHelp";
   /** 안내 중(병원 도착 전) 30초마다 위치 보내기 → 보호자 지도·지연 감지 */
   const tripId = session?.id;
+  const isDemo = !!session?.demo;
   useEffect(() => {
-    if (!tripId || hasArrived) return;
+    // 시연 안내는 실제 GPS 대신 지도 마커 위치를 guide 화면에서 보냄
+    if (!tripId || hasArrived || isDemo) return;
     let sub: Location.LocationSubscription | null = null;
     let cancelled = false;
 
@@ -184,7 +187,7 @@ export function useGuideSession(routeId?: string, appointmentId?: string) {
       cancelled = true;
       sub?.remove();
     };
-  }, [tripId, hasArrived]);
+  }, [tripId, hasArrived, isDemo]);
 
   useEffect(() => {
     if (
@@ -231,8 +234,14 @@ export function useGuideSession(routeId?: string, appointmentId?: string) {
 
   /** '안내 종료' */
   const end = useCallback(async () => {
-    if (session) await endGuideSession(session.id, hasArrived);
-  }, [session, hasArrived]);
+    if (!session) return;
+    await endGuideSession(session.id, hasArrived);
+    // 병원에 도착한 뒤 끝내면 그 일정은 완료 → 홈 목록에서 빠짐
+    if (hasArrived && appointmentId)
+      await completeAppointment(appointmentId).catch((e) =>
+        console.warn("일정 완료 처리 실패", e),
+      );
+  }, [session, hasArrived, appointmentId]);
 
   /** 늦음 확인에서 '괜찮아요' → 체크인 OK */
   const checkIn = useCallback(

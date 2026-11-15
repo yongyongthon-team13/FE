@@ -24,6 +24,7 @@ import {
   type ServerAppointment,
 } from "./guardianData";
 import { findPendingRides, toRideTodo } from "./rideHelp";
+import { DEMO_FULL_PATH } from "./demoRide";
 import { DEMO_DESTINATION } from "./routes";
 
 export type ElderStatus =
@@ -95,6 +96,7 @@ export type GuardianHome = {
     longitude: number;
     name: string;
   } | null; // 오늘 가는 병원
+  routePath: [number, number][]; // 지도에 그릴 경로 선 (시연 안내 중일 때)
 };
 
 // 목업: true로 바꾸면 진료 당일(이동 중) 홈 화면을 볼 수 있어요 (10단계 active-trip 연동 전까지)
@@ -277,6 +279,8 @@ export async function getGuardianHome(): Promise<GuardianHome> {
         : null,
     tripId: moving && trip ? trip.tripId : null,
     elderLocation: moving ? elderPointOf(trip) : null,
+    // 시연 안내(오늘 병원 일정 없이 이동 중)면 시연 경로 선도 같이
+    routePath: !todayHospitalOf(list) && moving ? DEMO_FULL_PATH : [],
     // 당일이 아닌 날 바로 안내를 시작하면 오늘 병원이 없어서 시연 병원 위치로
     hospitalLocation:
       todayHospitalOf(list) ??

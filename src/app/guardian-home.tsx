@@ -28,6 +28,7 @@ import { TodoList } from "@/components/guardian/TodoList";
 import { UpcomingList } from "@/components/guardian/UpcomingList";
 import { AppText } from "@/components/AppText";
 import { colors } from "@/constants/theme";
+import { notifyNow } from "@/lib/alarm";
 import { ApiError } from "@/lib/api";
 import { callPhone, textPhone } from "@/lib/call";
 
@@ -39,13 +40,27 @@ export default function GuardianHomeScreen() {
 
   const prevStatus = useRef<ElderStatus | null>(null);
 
-  // 30초마다 다시 불러오기 (이동 중 상태·위치 확인 시각 갱신)
+  // 10초마다 다시 불러오기 (이동 중 상태·위치 확인 시각 갱신)
   // 보고 있는 중에 '이동 중' → '도착 완료'로 바뀌면 도착 화면 띄우기
   useEffect(() => {
     const load = () =>
       getGuardianHome()
         .then((next) => {
           const was = prevStatus.current;
+          // 보고 있는 중에 상태가 바뀌면 알림 (처음 열었을 때는 안 띄움)
+          if (was === "beforeDeparture" && next.status === "onTheWay")
+            notifyNow(
+              `${next.elderName}가 출발했어요`,
+              "병원으로 가는 길을 지도로 확인할 수 있어요",
+            ).catch(() => {});
+          if (
+            next.status === "atHospital" &&
+            (was === "onTheWay" || was === "noResponse")
+          )
+            notifyNow(
+              `${next.elderName}가 병원에 도착했어요`,
+              "무사히 도착했어요",
+            ).catch(() => {});
           if (
             next.status === "atHospital" &&
             (was === "onTheWay" || was === "noResponse")
@@ -70,7 +85,7 @@ export default function GuardianHomeScreen() {
           setLoadFailed(true);
         });
     load();
-    const timer = setInterval(load, 30_000);
+    const timer = setInterval(load, 10_000);
     return () => clearInterval(timer);
   }, []);
 
@@ -122,6 +137,8 @@ export default function GuardianHomeScreen() {
               elderName={data.elderName}
               elder={data.elderLocation}
               hospital={data.hospitalLocation}
+              path={data.routePath}
+              height={220}
             />
             <QuickActions
               actions={[
