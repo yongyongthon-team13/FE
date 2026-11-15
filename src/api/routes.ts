@@ -105,6 +105,60 @@ async function findClinicCoords(
   }
 }
 
+// ── 시연용 목업 경로
+/** true: 서버 길찾기를 부르지 않고 항상 시연용 경로 / false: 서버 경로 (실패·0개면 시연용) */
+const ALWAYS_DEMO_ROUTES = true;
+const DEMO_PREFIX = "demo-";
+const isDemo = (id: string) => id.startsWith(DEMO_PREFIX);
+const DEMO_HOME: [number, number] = [37.2342, 127.2017]; // 처인구청 부근
+const DEMO_HOSPITAL: [number, number] = [37.2405, 127.2152]; // 병원 부근
+
+type DemoPlan = RoutePlan & { steps: RouteStep[]; path: [number, number][] };
+const DEMO_PLANS: DemoPlan[] = [
+  {
+    id: "demo-1",
+    buses: ["10번"],
+    walkMeters: 180,
+    transfers: 0,
+    minutes: 35,
+    recommended: true,
+    steps: [
+      { type: "walk", title: "집 → 처인구청 정류장", summary: "걸어서 120m · 2분" },
+      { type: "bus", title: "10번 저상버스", summary: "6개의 정거장 · 28분" },
+      { type: "walk", title: "병원 앞 정류장 → 병원", summary: "걸어서 60m · 1분" },
+    ],
+    path: [DEMO_HOME, [37.2350, 127.2030], [37.2372, 127.2075], [37.2390, 127.2118], DEMO_HOSPITAL],
+  },
+  {
+    id: "demo-2",
+    buses: ["66번", "10번"],
+    walkMeters: 90,
+    transfers: 1,
+    minutes: 42,
+    steps: [
+      { type: "walk", title: "집 → 김량장동 정류장", summary: "걸어서 50m · 1분" },
+      { type: "bus", title: "66번 저상버스", summary: "3개의 정거장 · 12분" },
+      { type: "bus", title: "10번 저상버스", summary: "4개의 정거장 · 25분" },
+      { type: "walk", title: "병원 앞 정류장 → 병원", summary: "걸어서 40m · 1분" },
+    ],
+    path: [DEMO_HOME, [37.2330, 127.2060], [37.2365, 127.2100], DEMO_HOSPITAL],
+  },
+  {
+    id: "demo-3",
+    buses: ["5번"],
+    walkMeters: 250,
+    transfers: 0,
+    minutes: 45,
+    steps: [
+      { type: "walk", title: "집 → 용인중앙시장 정류장", summary: "걸어서 200m · 4분" },
+      { type: "bus", title: "5번 저상버스", summary: "8개의 정거장 · 38분" },
+      { type: "walk", title: "병원 앞 정류장 → 병원", summary: "걸어서 50m · 1분" },
+    ],
+    path: [DEMO_HOME, [37.2360, 127.2010], [37.2398, 127.2080], DEMO_HOSPITAL],
+  },
+];
+const toLatLngPoint = ([latitude, longitude]: [number, number]) => ({ latitude, longitude });
+
 // 한 번에 5개 받아 두고 '다른 길 추천하기'는 그 안에서 3개씩 보여주기 (서버에 제외 기능 없음)
 let cache: { appointmentId: string; plans: RoutePlan[] } | null = null;
 
@@ -175,7 +229,17 @@ export async function searchRoutePlans(
   excludeIds: string[] = [],
 ): Promise<RoutePlan[]> {
   if (cache?.appointmentId !== appointmentId) {
-    cache = { appointmentId, plans: await fetchPlans(appointmentId) };
+    let plans: RoutePlan[] = [];
+    if (!ALWAYS_DEMO_ROUTES) {
+      try {
+        plans = await fetchPlans(appointmentId);
+      } catch (e) {
+        console.warn("길 찾기 실패 → 시연용 경로 사용", e);
+      }
+    }
+    // 서버에서 못 받으면 시연용 목업 경로
+    if (plans.length === 0) plans = DEMO_PLANS.map(({ steps, path, ...p }) => p);
+    cache = { appointmentId, plans };
   }
   return cache.plans.filter((p) => !excludeIds.includes(p.id)).slice(0, 3);
 }
@@ -200,6 +264,15 @@ export async function getRoutePlan(id: string): Promise<
     })
   | null
 > {
+  if (isDemo(id)) {
+    const demoPlan = DEMO_PLANS.find((d) => d.id === id);
+    if (!demoPlan) return null;
+    return {
+      ...demoPlan,
+      start: toLatLngPoint(DEMO_HOME),
+      end: toLatLngPoint(DEMO_HOSPITAL),
+    };
+  }
   const p = await apiData<ServerRoutePlan>(`/api/v1/route-plans/${id}`);
   if (!p) return null;
   const legs = [...p.legs].sort((a, b) => a.sequence - b.sequence);
@@ -251,8 +324,11 @@ export async function getDeparturePlan(
   routeId: string,
   appointmentId: string,
 ): Promise<DeparturePlan> {
+  const demoPlan = DEMO_PLANS.find((d) => d.id === routeId);
   const [plan, appt] = await Promise.all([
-    apiData<ServerRoutePlan>(`/api/v1/route-plans/${routeId}`),
+    demoPlan
+      ? Promise.resolve({ summary: { durationSeconds: demoPlan.minutes * 60 } })
+      : apiData<ServerRoutePlan>(`/api/v1/route-plans/${routeId}`),
     apiRequest<{ clinicName?: string | null; appointmentAt?: string | null }>(
       `/api/v1/appointments/${appointmentId}`,
     ),

@@ -22,7 +22,20 @@ export default function CompanionScreen() {
   );
 
   useEffect(() => {
-    getCompanionAssessment(id).then(setAssessment);
+    getCompanionAssessment(id)
+      .then((a) => {
+        // 동행이 필요 없다고 판단되면(recommended: false) 이 화면 건너뛰고 홈으로
+        if (!a.recommended) {
+          router.replace("/home");
+          return;
+        }
+        setAssessment(a);
+      })
+      .catch((e) => {
+        // 판단을 못 받아도 계속 로딩만 돌지 않게 홈으로
+        console.warn("동행 판단 실패", e);
+        router.replace("/home");
+      });
   }, [id]);
 
   // 동행 서비스는 진료 일주일 전까지만 예약 가능 → 7일 안이면 신청 막기

@@ -28,6 +28,7 @@ export default function SignupScreen() {
       if (role === 'ELDER') onboarding.name = name.trim(); // 온보딩 끝에 프로필 등록 API로 보냄
       router.push({ pathname: '/signup-verify', params: { name: name.trim(), phone, role } });
     } catch (e) {
+      console.warn("인증번호 전송 실패", e);
       const { title, message } = authErrorMessage(e);
       if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
       else Alert.alert(title, message);
