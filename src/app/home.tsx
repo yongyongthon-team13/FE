@@ -157,6 +157,28 @@ function AppointmentCard({
           <Icon name="play" color={colors.textOnPrimary} />
         </Pressable>
       )}
+
+      {/* 진료 당일이 아니어도 바로 길 안내 시작 (경로 안내 시작 화면) */}
+      {showRoute && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.guideButton,
+            pressed && { backgroundColor: colors.primarySoft },
+          ]}
+          onPress={() =>
+            router.push({
+              pathname: "/guide",
+              params: { appointmentId: item.id },
+            })
+          }
+          accessibilityRole="button"
+        >
+          <AppText variant="button" weight="semibold" color={colors.accent}>
+            바로 길 안내 시작
+          </AppText>
+          <Icon name="play" color={colors.accent} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -214,6 +236,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     ...shadow.button,
+  },
+  guideButton: {
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   pill: {
     alignSelf: "flex-start",

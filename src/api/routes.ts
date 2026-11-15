@@ -111,7 +111,8 @@ const ALWAYS_DEMO_ROUTES = true;
 const DEMO_PREFIX = "demo-";
 const isDemo = (id: string) => id.startsWith(DEMO_PREFIX);
 const DEMO_HOME: [number, number] = [37.2342, 127.2017]; // 처인구청 부근
-const DEMO_HOSPITAL: [number, number] = [37.2405, 127.2152]; // 병원 부근
+const DEMO_HOSPITAL: [number, number] = [37.271, 127.126]; // 용인착한마디의원 (기흥구 강남로 3)
+const DEMO_HOSPITAL_STOP: [number, number] = [37.2707, 127.1256]; // 강남대역.강남대입구 정류장
 
 type DemoPlan = RoutePlan & { steps: RouteStep[]; path: [number, number][] };
 const DEMO_PLANS: DemoPlan[] = [
@@ -125,9 +126,9 @@ const DEMO_PLANS: DemoPlan[] = [
     steps: [
       { type: "walk", title: "집 → 처인구청 정류장", summary: "걸어서 120m · 2분" },
       { type: "bus", title: "10번 저상버스", summary: "6개의 정거장 · 28분" },
-      { type: "walk", title: "병원 앞 정류장 → 병원", summary: "걸어서 60m · 1분" },
+      { type: "walk", title: "강남대역 정류장 → 용인착한마디의원", summary: "걸어서 60m · 1분" },
     ],
-    path: [DEMO_HOME, [37.2350, 127.2030], [37.2372, 127.2075], [37.2390, 127.2118], DEMO_HOSPITAL],
+    path: [DEMO_HOME, [37.2365, 127.1935], [37.241, 127.1776], [37.252, 127.16], [37.264, 127.142], [37.269, 127.13], DEMO_HOSPITAL_STOP, DEMO_HOSPITAL],
   },
   {
     id: "demo-2",
@@ -139,9 +140,9 @@ const DEMO_PLANS: DemoPlan[] = [
       { type: "walk", title: "집 → 김량장동 정류장", summary: "걸어서 50m · 1분" },
       { type: "bus", title: "66번 저상버스", summary: "3개의 정거장 · 12분" },
       { type: "bus", title: "10번 저상버스", summary: "4개의 정거장 · 25분" },
-      { type: "walk", title: "병원 앞 정류장 → 병원", summary: "걸어서 40m · 1분" },
+      { type: "walk", title: "강남대역 정류장 → 용인착한마디의원", summary: "걸어서 40m · 1분" },
     ],
-    path: [DEMO_HOME, [37.2330, 127.2060], [37.2365, 127.2100], DEMO_HOSPITAL],
+    path: [DEMO_HOME, [37.2348, 127.1985], [37.2395, 127.182], [37.2495, 127.164], [37.2615, 127.145], [37.2685, 127.1315], DEMO_HOSPITAL_STOP, DEMO_HOSPITAL],
   },
   {
     id: "demo-3",
@@ -152,9 +153,9 @@ const DEMO_PLANS: DemoPlan[] = [
     steps: [
       { type: "walk", title: "집 → 용인중앙시장 정류장", summary: "걸어서 200m · 4분" },
       { type: "bus", title: "5번 저상버스", summary: "8개의 정거장 · 38분" },
-      { type: "walk", title: "병원 앞 정류장 → 병원", summary: "걸어서 50m · 1분" },
+      { type: "walk", title: "강남대역 정류장 → 용인착한마디의원", summary: "걸어서 50m · 1분" },
     ],
-    path: [DEMO_HOME, [37.2360, 127.2010], [37.2398, 127.2080], DEMO_HOSPITAL],
+    path: [DEMO_HOME, [37.2372, 127.1995], [37.2455, 127.1845], [37.2555, 127.1625], [37.2665, 127.1405], [37.2698, 127.1285], DEMO_HOSPITAL_STOP, DEMO_HOSPITAL],
   },
 ];
 const toLatLngPoint = ([latitude, longitude]: [number, number]) => ({ latitude, longitude });
