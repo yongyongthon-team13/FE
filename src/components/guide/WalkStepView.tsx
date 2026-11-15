@@ -6,7 +6,6 @@ import { AppText } from '@/components/AppText';
 import { colors, palette } from '@/constants/theme';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { MapPreview } from './MapPreview';
 
 const DIRECTION_TEXT = { straight: '앞으로', left: '왼쪽으로', right: '오른쪽으로' } as const;
 
@@ -26,9 +25,11 @@ export function WalkStepView({ step }: { step: WalkStep }) {
       <View style={styles.card}>
         <Icon name={DIRECTION_ICON[step.direction]} size={70} color={colors.accent} />
         <AppText variant="heading" weight="bold" color={palette.green600} style={styles.center}>
-            {step.direction === 'straight'
-            ? `${step.distanceM}m 앞으로`
-            : `${DIRECTION_TEXT[step.direction]} ${step.distanceM}m`}
+            {step.distanceM <= 0
+            ? '도착했어요'
+            : step.direction === 'straight'
+              ? `${step.distanceM}m 앞으로`
+              : `${DIRECTION_TEXT[step.direction]} ${step.distanceM}m`}
         </AppText>
         <AppText variant="button" weight="medium" color={palette.green600} style={styles.center}>
           {step.instruction}
@@ -38,9 +39,6 @@ export function WalkStepView({ step }: { step: WalkStep }) {
         </AppText>
       </View>
 
-      <View style={styles.map}>
-        <MapPreview />
-      </View>
     </>
   );
 }
@@ -62,5 +60,4 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   center: { textAlign: 'center' },
-  map: { marginTop: 20 },
 });

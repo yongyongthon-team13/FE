@@ -160,6 +160,39 @@ const DEMO_PLANS: DemoPlan[] = [
 ];
 const toLatLngPoint = ([latitude, longitude]: [number, number]) => ({ latitude, longitude });
 
+/** 시연용 목적지 (길 안내 화면의 병원 이름·위치) */
+export const DEMO_DESTINATION = {
+  name: "용인착한마디의원",
+  stopName: "강남대역.강남대입구 정류장",
+  latitude: DEMO_HOSPITAL[0],
+  longitude: DEMO_HOSPITAL[1],
+};
+/** 지금 시연용 경로를 쓰는 중인지 */
+export const usingDemoRoutes = () => ALWAYS_DEMO_ROUTES;
+
+/** 보호자 연동용: 서버에 이동 기록(trip)을 만들려면 실제 경로 id가 필요해서
+ *  시연 경로와 같은 출발(집)·도착(시연 병원)으로 서버 경로를 하나 받아 둠 (실패하면 null) */
+export async function findServerRoutePlanId(): Promise<string | null> {
+  const home = await getHomePoint();
+  const res = await apiData<{ alternatives: ServerRoutePlan[] }>(
+    "/api/v1/route-plans/search",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        origin: { name: "집", ...home },
+        destination: {
+          name: DEMO_DESTINATION.name,
+          latitude: DEMO_DESTINATION.latitude,
+          longitude: DEMO_DESTINATION.longitude,
+        },
+        mode: SEARCH_MODE,
+        count: 1,
+      }),
+    },
+  );
+  return res.alternatives?.[0]?.routePlanId ?? null;
+}
+
 // 한 번에 5개 받아 두고 '다른 길 추천하기'는 그 안에서 3개씩 보여주기 (서버에 제외 기능 없음)
 let cache: { appointmentId: string; plans: RoutePlan[] } | null = null;
 

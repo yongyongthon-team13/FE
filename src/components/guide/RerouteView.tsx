@@ -6,7 +6,6 @@ import { AppText } from '@/components/AppText';
 import { Icon } from '@/components/Icon';
 import { colors, palette } from '@/constants/theme';
 
-import { MapPreview } from './MapPreview';
 
 const DIRECTION_TEXT = { straight: '앞으로', left: '왼쪽으로', right: '오른쪽으로' } as const;
 const DIRECTION_ICON = { straight: 'arrowUp', left: 'arrowLeft', right: 'arrowRight' } as const;
@@ -24,9 +23,6 @@ export function RerouteView({ preview }: Props) {
         {'지금 계신 곳에서\n다시 안내할게요'}
       </AppText>
 
-      <View style={styles.map}>
-        <MapPreview />
-      </View>
 
       <View style={styles.card}>
         {preview ? (
@@ -49,7 +45,6 @@ export function RerouteView({ preview }: Props) {
 
 const styles = StyleSheet.create({
   title: { textAlign: 'center', lineHeight: 34 },
-  map: { marginTop: 30 },
   card: {
     marginTop: 22,
     minHeight: 203,

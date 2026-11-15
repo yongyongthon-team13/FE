@@ -24,6 +24,7 @@ import {
   type ServerAppointment,
 } from "./guardianData";
 import { findPendingRides, toRideTodo } from "./rideHelp";
+import { DEMO_DESTINATION } from "./routes";
 
 export type ElderStatus =
   | "beforeDeparture"
@@ -276,6 +277,15 @@ export async function getGuardianHome(): Promise<GuardianHome> {
         : null,
     tripId: moving && trip ? trip.tripId : null,
     elderLocation: moving ? elderPointOf(trip) : null,
-    hospitalLocation: todayHospitalOf(list),
+    // 당일이 아닌 날 바로 안내를 시작하면 오늘 병원이 없어서 시연 병원 위치로
+    hospitalLocation:
+      todayHospitalOf(list) ??
+      (moving
+        ? {
+            latitude: DEMO_DESTINATION.latitude,
+            longitude: DEMO_DESTINATION.longitude,
+            name: DEMO_DESTINATION.name,
+          }
+        : null),
   };
 }

@@ -6,9 +6,12 @@ import {
   findNextLowFloorBus,
   searchFromHere,
   sendTripEvent,
+  startDemoTripSession,
   startTripSession,
   watchStopsLeft,
 } from "./trips";
+import { DEMO_WALKS } from "./demoRide";
+import { DEMO_DESTINATION, usingDemoRoutes } from "./routes";
 
 export type Direction = "straight" | "left" | "right";
 
@@ -39,7 +42,7 @@ export type WaitBusStep = {
 export type OnBusStep = {
   id: string;
   type: "onBus";
-  alightStop: string; // 내릴 정류장, 예: 'OO정류장'
+  alightStop: string; // 내릴 정류장, 예: '강남대역.강남대입구 정류장'
   stopsLeft: number; // 남은 정거장 수
   stops?: { latitude: number; longitude: number }[]; // 지나가는 정류장 좌표 (남은 정거장 계산용)
 };
@@ -54,11 +57,12 @@ export type GuideStep =
 
 export type GuideSession = {
   id: string;
-  destination: string; // 예: 'OO병원 정문'
+  destination: string; // 예: '용인착한마디의원'
   expectedArrivalAt: string; // 병원 도착 예상 시각 (ISO 문자열)
   steps: GuideStep[];
   routePlanId?: string; // 서버 경로 id (실시간 버스 도착 정보용)
   destinationPoint?: { name: string; latitude?: number; longitude?: number }; // 병원 위치 ( 다시 안내용 )
+  demo?: boolean; // 시연용 안내 (지도 마커가 시연 경로 위를 움직임)
 };
 
 /** 현재 위치 기준 재안내 미리보기 (첫 이동 방향 + 병원까지 남은 거리) */
@@ -84,6 +88,14 @@ export async function startGuideSession(
   routeId?: string,
   appointmentId?: string,
 ): Promise<GuideSession> {
+  // 시연용 경로(또는 경로 없이 시작 + 시연 모드)면 시연 안내 (서버 이동 기록은 만들어서 보호자 연동)
+  if (routeId?.startsWith("demo-") || (!routeId && usingDemoRoutes())) {
+    try {
+      return await startDemoTripSession(appointmentId);
+    } catch {
+      return mockSession();
+    }
+  }
   try {
     return await startTripSession(routeId, appointmentId);
   } catch {
@@ -94,14 +106,15 @@ export async function startGuideSession(
 function mockSession(): GuideSession {
   return {
     id: "mock-session",
-    destination: "OO병원 정문",
+    demo: true,
+    destination: DEMO_DESTINATION.name,
     // 목업: 테스트용으로 1분 뒤를 도착 예상 시각으로
     expectedArrivalAt: new Date(Date.now() + 60 * 1000).toISOString(),
     steps: [
       {
         id: "walk-1",
         type: "walk",
-        title: "1번 정류장까지",
+        title: "처인구청 정류장까지",
         direction: "straight",
         distanceM: 120,
         instruction: "편의점이 보이면 왼쪽으로",
@@ -111,7 +124,7 @@ function mockSession(): GuideSession {
       {
         id: "wait-1",
         type: "waitBus",
-        stopName: "XX 정류장",
+        stopName: "처인구청 정류장",
         busNo: "10번",
         arrivalMin: 4,
         lowFloor: true,
@@ -119,13 +132,13 @@ function mockSession(): GuideSession {
       {
         id: "bus-1",
         type: "onBus",
-        alightStop: "OO정류장",
+        alightStop: DEMO_DESTINATION.stopName,
         stopsLeft: 5,
       },
       {
         id: "walk-2",
         type: "walk",
-        title: "OO병원 정문까지",
+        title: `${DEMO_DESTINATION.name}까지`,
         direction: "left",
         distanceM: 50,
         instruction: "횡단보도를 건너세요",
@@ -140,7 +153,7 @@ function mockSession(): GuideSession {
         id: "counter-1",
         type: "counterHelp",
         userName: "OOO",
-        hospital: "OO병원",
+        hospital: DEMO_DESTINATION.name,
         date: "11월 4일(화)",
         time: "오전 10 : 00",
         department: "내과",
@@ -150,7 +163,7 @@ function mockSession(): GuideSession {
         id: "counter-1",
         type: "counterHelp",
         userName: "OOO",
-        hospital: "OO병원",
+        hospital: DEMO_DESTINATION.name,
         date: "11월 4일(화)",
         time: "오전 10 : 00",
         department: "내과",
@@ -201,6 +214,8 @@ export async function rerouteGuideSession(
   session: GuideSession,
   fromStepId: string,
 ): Promise<GuideSession> {
+  // 시연 안내: 실제 위치로 다시 찾으면 시연 경로가 사라지므로 지금 경로 그대로 (마커는 이어서 움직임)
+  if (session.demo) return session;
   try {
     const found = await searchFromHere(session);
     const hospitalSteps = session.steps.filter(
@@ -221,7 +236,9 @@ export async function rerouteGuideSession(
 /** '지금 계신 곳에서 다시 안내': 현재 위치에서 병원까지 새 경로 (실패하면 목업) */
 export async function rerouteFromHere(
   session: GuideSession,
+  fromStepId?: string,
 ): Promise<ReroutePlan> {
+  if (session.demo) return demoReroute(session, fromStepId);
   const hospitalSteps = session.steps.filter(
     (s) => s.type === "arrived" || s.type === "counterHelp",
   );
@@ -247,6 +264,31 @@ export async function rerouteFromHere(
   }
 }
 
+/** 시연 안내의 '다시 안내': 지금 단계부터 시연 경로 그대로 이어서 (같은 지도·마커 사용) */
+function demoReroute(session: GuideSession, fromStepId?: string): ReroutePlan {
+  const from = Math.max(
+    session.steps.findIndex((s) => s.id === fromStepId),
+    0,
+  );
+  const steps = session.steps.slice(from);
+  const walks = steps.filter((s): s is WalkStep => s.type === "walk");
+  const firstSeg = walks[0] ? DEMO_WALKS[walks[0].id]?.[0] : undefined;
+  const walkM = walks.reduce(
+    (sum, w) =>
+      sum + (DEMO_WALKS[w.id]?.reduce((a, seg) => a + seg.meters, 0) ?? 0),
+    0,
+  );
+  const busM = steps.some((s) => s.type === "onBus") ? 7000 : 0; // 버스 구간 대략 7km
+  return {
+    session: { ...session, steps },
+    preview: {
+      direction: firstSeg?.direction ?? "straight",
+      distanceM: firstSeg?.meters ?? 0,
+      totalRemainingM: walkM + busM,
+    },
+  };
+}
+
 async function mockReroute(session: GuideSession): Promise<ReroutePlan> {
   const hospitalSteps = session.steps.filter(
     (s) => s.type === "arrived" || s.type === "counterHelp",
@@ -259,7 +301,7 @@ async function mockReroute(session: GuideSession): Promise<ReroutePlan> {
         {
           id: "reroute-walk-1",
           type: "walk",
-          title: "OO병원 정문까지",
+          title: `${DEMO_DESTINATION.name}까지`,
           direction: "right",
           distanceM: 80,
           instruction: "약국이 보이면 오른쪽으로",

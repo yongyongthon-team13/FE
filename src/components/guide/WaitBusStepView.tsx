@@ -5,7 +5,6 @@ import type { WaitBusStep } from '@/api/guide';
 import { AppText } from '@/components/AppText';
 import { colors, palette } from '@/constants/theme';
 
-import { MapPreview } from './MapPreview';
 
 export function WaitBusStepView({ step }: { step: WaitBusStep }) {
   return (
@@ -30,9 +29,6 @@ export function WaitBusStepView({ step }: { step: WaitBusStep }) {
         {'먼저 도착한 버스가 계단이 있는 버스이면\n보내고 기다리세요'}
       </AppText>
 
-      <View style={styles.map}>
-        <MapPreview />
-      </View>
     </>
   );
 }
@@ -55,5 +51,4 @@ const styles = StyleSheet.create({
   },
   arrival: { fontSize: 32, lineHeight: 42 },
   note: { marginTop: 22, lineHeight: 28 },
-  map: { marginTop: 20 },
 });

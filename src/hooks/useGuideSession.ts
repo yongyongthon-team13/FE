@@ -129,8 +129,8 @@ export function useGuideSession(routeId?: string, appointmentId?: string) {
     setLateCheck(false);
     setRerouteOpen(true);
     setReroutePlan(null);
-    setReroutePlan(await rerouteFromHere(session));
-  }, [session]);
+    setReroutePlan(await rerouteFromHere(session, step?.id));
+  }, [session, step]);
 
   /** '안내 시작': 새 경로로 처음부터 안내 */
   const startReroute = useCallback(() => {
